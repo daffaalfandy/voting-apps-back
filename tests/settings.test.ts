@@ -59,6 +59,7 @@ describe('while the system is locked', () => {
     { label: 'update user', send: () => request(app).patch(`/api/users/${voter.user.id}`).send({ name: 'Renamed' }) },
     { label: 'delete user', send: () => request(app).delete(`/api/users/${voter.user.id}`) },
     { label: 'reset vote', send: () => request(app).delete(`/api/users/${voter.user.id}/vote`) },
+    { label: 'issue vote code', send: () => request(app).post(`/api/users/${voter.user.id}/vote-code`) },
     { label: 'create candidate', send: () => request(app).post('/api/candidates').send({ name: 'Sofia Rodriguez' }) },
     { label: 'delete candidate', send: () => request(app).delete(`/api/candidates/${candidate.id}`) },
   ];

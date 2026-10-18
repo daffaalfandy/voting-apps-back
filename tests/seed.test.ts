@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Candidate } from '../src/models/candidate.js';
 import { User } from '../src/models/user.js';
 import { Vote } from '../src/models/vote.js';
-import { DEMO_VOTER_PASSWORD, seedDatabase } from '../src/seed.js';
+import { DEMO_VOTERS, seedDatabase } from '../src/seed.js';
 import { app, createUser } from './helpers.js';
 
 const admin = { name: 'Arthur Vance', email: 'admin@example.com', password: 'admin12345' };
@@ -14,7 +14,7 @@ describe('seedDatabase', () => {
 
     expect(seeded).toBe(true);
     expect(await User.countDocuments()).toBe(1);
-    const login = await request(app).post('/api/auth/login').send({ email: admin.email, password: admin.password });
+    const login = await request(app).post('/api/auth/admin/login').send({ email: admin.email, password: admin.password });
     expect(login.body.user.role).toBe('admin');
   });
 
@@ -24,7 +24,8 @@ describe('seedDatabase', () => {
     expect(await User.countDocuments({ role: 'voter' })).toBe(4);
     expect(await Candidate.countDocuments()).toBe(3);
     expect(await Vote.countDocuments()).toBe(2);
-    const login = await request(app).post('/api/auth/login').send({ email: 'sarah@example.com', password: DEMO_VOTER_PASSWORD });
+    const [sarah] = DEMO_VOTERS;
+    const login = await request(app).post('/api/auth/login').send({ email: sarah!.email, code: sarah!.code });
     expect(login.status).toBe(200);
   });
 
