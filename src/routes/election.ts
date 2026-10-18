@@ -1,0 +1,18 @@
+import { Router } from 'express';
+import { HttpError } from '../errors.js';
+import { Candidate } from '../models/candidate.js';
+import { getSettings } from '../models/setting.js';
+import { Vote } from '../models/vote.js';
+
+export const electionRouter = Router();
+
+electionRouter.post('/reset', async (_req, res) => {
+  if (!(await getSettings()).locked) {
+    throw new HttpError(409, 'Lock the system before resetting, so no votes arrive during the reset.');
+  }
+
+  const votes = await Vote.deleteMany({});
+  const writeIns = await Candidate.deleteMany({ isWriteIn: true });
+
+  res.json({ votesRemoved: votes.deletedCount, writeInsRemoved: writeIns.deletedCount });
+});
