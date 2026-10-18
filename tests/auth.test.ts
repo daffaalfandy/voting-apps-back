@@ -50,6 +50,13 @@ describe('POST /api/auth/login', () => {
     expect(res.body.error.message).toMatch(/suspended/i);
   });
 
+  it('rejects broken JSON with 400', async () => {
+    const res = await request(app).post('/api/auth/login').set('Content-Type', 'application/json').send('{"email":');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toBe('Malformed JSON body');
+  });
+
   it('rejects a malformed body with 400', async () => {
     const res = await request(app).post('/api/auth/login').send({ email: 'not-an-email' });
 
