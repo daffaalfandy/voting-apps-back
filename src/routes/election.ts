@@ -7,8 +7,8 @@ import { Vote } from '../models/vote.js';
 export const electionRouter = Router();
 
 electionRouter.post('/reset', async (_req, res) => {
-  if (!(await getSettings()).locked) {
-    throw new HttpError(409, 'Lock the system before resetting, so no votes arrive during the reset.');
+  if ((await getSettings()).locked) {
+    throw new HttpError(423, 'The election is running. Unlock the system to close voting before resetting.');
   }
 
   const votes = await Vote.deleteMany({});
