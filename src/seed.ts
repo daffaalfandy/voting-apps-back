@@ -1,15 +1,15 @@
 import { hashPassword } from './auth/password.js';
+import { hashVoteCode } from './auth/voteCode.js';
 import { Candidate } from './models/candidate.js';
 import { User } from './models/user.js';
 import { Vote } from './models/vote.js';
 
-export const DEMO_VOTER_PASSWORD = 'voter12345';
-
-const DEMO_VOTERS = [
-  { name: 'Sarah Jenkins', email: 'sarah@example.com' },
-  { name: 'David Kim', email: 'david@example.com' },
-  { name: 'Elena Rostova', email: 'elena@example.com' },
-  { name: 'Amara Okafor', email: 'amara@example.com' },
+// Fixed codes so the README can list them; real voters get random ones from the console.
+export const DEMO_VOTERS = [
+  { name: 'Sarah Jenkins', email: 'sarah@example.com', code: 'SRJN-4826' },
+  { name: 'David Kim', email: 'david@example.com', code: 'DVKM-7395' },
+  { name: 'Elena Rostova', email: 'elena@example.com', code: 'ERST-5942' },
+  { name: 'Amara Okafor', email: 'amara@example.com', code: 'AMRA-2683' },
 ];
 
 const DEMO_CANDIDATES = ['Dr. Evelyn Reed', 'Marcus Chen', 'Sofia Rodriguez'];
@@ -35,8 +35,11 @@ export async function seedDatabase({ admin, demo }: SeedOptions): Promise<boolea
     return true;
   }
 
-  const voterHash = await hashPassword(DEMO_VOTER_PASSWORD);
-  const voters = await User.insertMany(DEMO_VOTERS.map((v) => ({ ...v, role: 'voter', passwordHash: voterHash })));
+  const voters = await User.insertMany(
+    await Promise.all(
+      DEMO_VOTERS.map(async ({ name, email, code }) => ({ name, email, role: 'voter', voteCodeHash: await hashVoteCode(code) })),
+    ),
+  );
   const candidates = await Candidate.create(DEMO_CANDIDATES.map((name) => ({ name })));
 
   await Vote.insertMany(
