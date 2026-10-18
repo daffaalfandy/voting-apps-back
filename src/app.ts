@@ -5,6 +5,7 @@ import { errorHandler, notFound } from './middleware/error.js';
 import { authRouter } from './routes/auth.js';
 import { candidatesRouter } from './routes/candidates.js';
 import { usersRouter } from './routes/users.js';
+import { votesRouter } from './routes/votes.js';
 
 export function createApp() {
   const app = express();
@@ -18,6 +19,7 @@ export function createApp() {
   app.use('/api/auth', authRouter);
   app.use('/api/users', requireAuth, requireRole('admin'), usersRouter);
   app.use('/api/candidates', requireAuth, candidatesRouter);
+  app.use('/api/votes', requireAuth, requireRole('voter'), votesRouter);
 
   app.use(notFound);
   app.use(errorHandler);
