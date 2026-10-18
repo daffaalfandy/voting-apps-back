@@ -75,10 +75,10 @@ describe('POST /api/votes', () => {
   });
 
   it.each([
-    [{}, 'neither field'],
-    [{ candidateId: 'x', name: 'Jane Doe' }, 'both fields'],
-    [{ name: '<script>' }, 'an invalid write-in name'],
-  ])('rejects %j (%s) with 400', async (body) => {
+    { label: 'neither field', body: {} },
+    { label: 'both fields', body: { candidateId: 'x', name: 'Jane Doe' } },
+    { label: 'an invalid write-in name', body: { name: '<script>' } },
+  ])('rejects $label with 400', async ({ body }) => {
     const res = await vote(voterToken, body);
 
     expect(res.status).toBe(400);
