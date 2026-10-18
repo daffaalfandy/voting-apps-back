@@ -40,12 +40,19 @@ describe('GET/PUT /api/settings', () => {
     expect(res.status).toBe(400);
   });
 
-  it('is admin only', async () => {
+  it('lets voters read the lock state but only admins change it', async () => {
     const get = await request(app).get('/api/settings').set(bearer(voter.token));
     const put = await request(app).put('/api/settings').set(bearer(voter.token)).send({ locked: true });
 
-    expect(get.status).toBe(403);
+    expect(get.status).toBe(200);
+    expect(get.body.settings).toEqual({ locked: false });
     expect(put.status).toBe(403);
+  });
+
+  it('requires sign-in to read the lock state', async () => {
+    const res = await request(app).get('/api/settings');
+
+    expect(res.status).toBe(401);
   });
 });
 
@@ -79,14 +86,17 @@ describe('while the system is locked', () => {
     expect(candidates.status).toBe(200);
   });
 
-  it('still accepts votes, including write-ins', async () => {
+  it('refuses votes, including write-ins, with 423', async () => {
     const other = await createUser();
 
     const byId = await request(app).post('/api/votes').set(bearer(voter.token)).send({ candidateId: candidate.id });
     const writeIn = await request(app).post('/api/votes').set(bearer(other.token)).send({ name: 'Jane Doe' });
 
-    expect(byId.status).toBe(201);
-    expect(writeIn.status).toBe(201);
+    expect(byId.status).toBe(423);
+    expect(byId.body.error.message).toMatch(/voting is closed/i);
+    expect(writeIn.status).toBe(423);
+    expect(await Vote.countDocuments()).toBe(0);
+    expect(await Candidate.countDocuments({ name: 'Jane Doe' })).toBe(0);
   });
 
   it('allows changes again after unlocking', async () => {
