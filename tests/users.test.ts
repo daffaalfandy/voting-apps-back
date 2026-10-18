@@ -131,6 +131,16 @@ describe('POST /api/users', () => {
     expect(res.status).toBe(400);
     expect(res.body.error.details.map((d: { path: string }) => d.path)).toContain(field);
   });
+
+  it('explains validation failures in plain language', async () => {
+    const res = await request(app).post('/api/users').set(bearer(admin.token)).send({ email: 'nope', password: 'short' });
+
+    expect(res.body.error.details).toEqual([
+      { path: 'name', message: 'Name is required' },
+      { path: 'email', message: 'Enter a valid email address' },
+      { path: 'password', message: 'Password must be at least 8 characters' },
+    ]);
+  });
 });
 
 describe('PATCH /api/users/:id', () => {

@@ -115,3 +115,11 @@ describe('DELETE /api/candidates/:id', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('candidate name messages', () => {
+  it('explains a rejected name in plain language', async () => {
+    const res = await request(app).post('/api/candidates').set(bearer(adminToken)).send({ name: 'A' });
+
+    expect(res.body.error.details[0].message).toBe('Name must be at least 2 characters');
+  });
+});
