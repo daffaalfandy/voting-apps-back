@@ -57,7 +57,7 @@ async function saveUser(user: UserDoc) {
   }
 }
 
-async function findUser(id: string) {
+async function findUser(id: unknown) {
   const user = await User.findById(id);
   if (!user) {
     throw new HttpError(404, 'User not found');
