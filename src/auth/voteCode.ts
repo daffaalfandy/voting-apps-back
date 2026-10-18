@@ -15,4 +15,4 @@ export const normalizeVoteCode = (code: string) => code.toUpperCase().replace(/[
 
 export const hashVoteCode = (code: string) => hashPassword(normalizeVoteCode(code));
 
-export const verifyVoteCode = (code: string, hash: string | undefined) => verifyPassword(normalizeVoteCode(code), hash);
+export const verifyVoteCode = (code: string, hash: string | null | undefined) => verifyPassword(normalizeVoteCode(code), hash);
