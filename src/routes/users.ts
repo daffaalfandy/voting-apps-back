@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { hashPassword } from '../auth/password.js';
 import { HttpError, isDuplicateKeyError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
+import { requireUnlocked } from '../middleware/lock.js';
 import { USER_ROLES, USER_STATUSES, User, toPublicUser, type UserDoc } from '../models/user.js';
 import { Vote } from '../models/vote.js';
 
@@ -67,7 +68,7 @@ usersRouter.get('/', async (req, res) => {
   res.json({ users: users.map((u) => toPublicUser(u, votedAt.get(u.id) ?? null)) });
 });
 
-usersRouter.post('/', async (req, res) => {
+usersRouter.post('/', requireUnlocked, async (req, res) => {
   const body = createSchema.parse(req.body);
 
   const user = new User({
@@ -81,7 +82,7 @@ usersRouter.post('/', async (req, res) => {
   res.status(201).json({ user: toPublicUser(user, null) });
 });
 
-usersRouter.patch('/:id', async (req, res) => {
+usersRouter.patch('/:id', requireUnlocked, async (req, res) => {
   const updates = updateSchema.parse(req.body);
   const me = currentUser(req);
 
@@ -111,7 +112,7 @@ usersRouter.patch('/:id', async (req, res) => {
   res.json({ user: toPublicUser(user, vote?.createdAt ?? null) });
 });
 
-usersRouter.delete('/:id', async (req, res) => {
+usersRouter.delete('/:id', requireUnlocked, async (req, res) => {
   if (req.params.id === currentUser(req).id) {
     throw new HttpError(400, 'You cannot delete your own account');
   }
@@ -125,7 +126,7 @@ usersRouter.delete('/:id', async (req, res) => {
   res.status(204).end();
 });
 
-usersRouter.delete('/:id/vote', async (req, res) => {
+usersRouter.delete('/:id/vote', requireUnlocked, async (req, res) => {
   const { deletedCount } = await Vote.deleteOne({ user: req.params.id });
   if (deletedCount === 0) {
     throw new HttpError(404, 'This user has no vote to reset');

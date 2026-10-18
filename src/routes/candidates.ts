@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { HttpError, isDuplicateKeyError } from '../errors.js';
 import { currentUser, requireRole } from '../middleware/auth.js';
+import { requireUnlocked } from '../middleware/lock.js';
 import { Candidate, candidateNameSchema, toPublicCandidate } from '../models/candidate.js';
 import { Vote, countVotesByCandidate } from '../models/vote.js';
 
@@ -24,7 +25,7 @@ candidatesRouter.get('/', async (req, res) => {
   });
 });
 
-candidatesRouter.post('/', requireRole('admin'), async (req, res) => {
+candidatesRouter.post('/', requireRole('admin'), requireUnlocked, async (req, res) => {
   const { name } = createSchema.parse(req.body);
 
   try {
@@ -38,7 +39,7 @@ candidatesRouter.post('/', requireRole('admin'), async (req, res) => {
   }
 });
 
-candidatesRouter.delete('/:id', requireRole('admin'), async (req, res) => {
+candidatesRouter.delete('/:id', requireRole('admin'), requireUnlocked, async (req, res) => {
   const candidate = await Candidate.findById(req.params.id);
   if (!candidate) {
     throw new HttpError(404, 'Candidate not found');
