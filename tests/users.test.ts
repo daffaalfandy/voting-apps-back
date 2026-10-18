@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { Candidate } from '../src/models/candidate.js';
 import { User } from '../src/models/user.js';
 import { Vote } from '../src/models/vote.js';
-import { app, bearer, createAdmin, createUser } from './helpers.js';
+import { app, bearer, createAdmin, createUser, startElection } from './helpers.js';
 
 let admin: Awaited<ReturnType<typeof createAdmin>>;
 
@@ -300,6 +300,7 @@ describe('DELETE /api/users/:id/vote', () => {
 
     expect(res.status).toBe(204);
     expect(await Vote.countDocuments({ user: voter.user._id })).toBe(0);
+    await startElection();
     const revote = await request(app).post('/api/votes').set(bearer(voter.token)).send({ candidateId: candidate.id });
     expect(revote.status).toBe(201);
   });

@@ -3,7 +3,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { Candidate, type CandidateDoc } from '../src/models/candidate.js';
 import { Vote } from '../src/models/vote.js';
-import { app, bearer, createAdmin, createUser } from './helpers.js';
+import { app, bearer, createAdmin, createUser, startElection } from './helpers.js';
 
 let voterToken: string;
 let marcus: CandidateDoc;
@@ -11,6 +11,7 @@ let marcus: CandidateDoc;
 beforeEach(async () => {
   voterToken = (await createUser()).token;
   marcus = await Candidate.create({ name: 'Marcus Chen' });
+  await startElection();
 });
 
 const vote = (token: string, body: object) => request(app).post('/api/votes').set(bearer(token)).send(body);

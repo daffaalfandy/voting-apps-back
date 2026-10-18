@@ -2,6 +2,7 @@ import { createApp } from '../src/app.js';
 import { hashPassword } from '../src/auth/password.js';
 import { signToken } from '../src/auth/token.js';
 import { generateVoteCode, hashVoteCode } from '../src/auth/voteCode.js';
+import { updateSettings } from '../src/models/setting.js';
 import { User, type UserStatus } from '../src/models/user.js';
 
 export const app = createApp();
@@ -36,3 +37,7 @@ export async function createAdmin(input: UserInput & { password?: string } = {})
 }
 
 export const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+export const startElection = () => updateSettings({ locked: true });
+
+export const prepareElection = () => updateSettings({ locked: false });

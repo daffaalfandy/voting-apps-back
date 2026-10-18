@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { Candidate } from '../src/models/candidate.js';
+import { getSettings } from '../src/models/setting.js';
 import { User } from '../src/models/user.js';
 import { Vote } from '../src/models/vote.js';
 import { DEMO_VOTERS, seedDatabase } from '../src/seed.js';
@@ -45,5 +46,19 @@ describe('seedDatabase', () => {
 
     expect(await User.countDocuments()).toBe(5);
     expect(await Vote.countDocuments()).toBe(2);
+  });
+});
+
+describe('seeded election state', () => {
+  it('starts the demo election running, since it already holds votes', async () => {
+    await seedDatabase({ admin, demo: true });
+
+    expect(await getSettings()).toEqual({ locked: true });
+  });
+
+  it('leaves a fresh install unlocked for preparation', async () => {
+    await seedDatabase({ admin, demo: false });
+
+    expect(await getSettings()).toEqual({ locked: false });
   });
 });

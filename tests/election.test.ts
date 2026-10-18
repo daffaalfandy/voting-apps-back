@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { Candidate } from '../src/models/candidate.js';
 import { User } from '../src/models/user.js';
 import { Vote } from '../src/models/vote.js';
-import { app, bearer, createAdmin, createUser } from './helpers.js';
+import { app, bearer, createAdmin, createUser, prepareElection, startElection } from './helpers.js';
 
 let adminToken: string;
 
@@ -11,13 +11,13 @@ beforeEach(async () => {
   adminToken = (await createAdmin()).token;
 });
 
-const setLocked = (locked: boolean) => request(app).put('/api/settings').set(bearer(adminToken)).send({ locked });
 const reset = (token = adminToken) => request(app).post('/api/election/reset').set(bearer(token));
 
 async function runElection() {
   const marcus = await Candidate.create({ name: 'Marcus Chen' });
   const sarah = await createUser();
   const david = await createUser();
+  await startElection();
   await request(app).post('/api/votes').set(bearer(sarah.token)).send({ candidateId: marcus.id });
   await request(app).post('/api/votes').set(bearer(david.token)).send({ name: 'Jane Doe' });
   return { marcus, sarah, david };
@@ -26,7 +26,7 @@ async function runElection() {
 describe('POST /api/election/reset', () => {
   it('removes every vote and write-in name, and keeps users and listed candidates', async () => {
     const { marcus } = await runElection();
-    await setLocked(true);
+    await prepareElection();
 
     const res = await reset();
 
@@ -37,11 +37,11 @@ describe('POST /api/election/reset', () => {
     expect(await User.countDocuments({ role: 'voter' })).toBe(2);
   });
 
-  it('lets voters vote again once the system is unlocked', async () => {
+  it('lets voters vote again once the next election starts', async () => {
     const { marcus, sarah } = await runElection();
-    await setLocked(true);
+    await prepareElection();
     await reset();
-    await setLocked(false);
+    await startElection();
 
     const vote = await request(app).post('/api/votes').set(bearer(sarah.token)).send({ candidateId: marcus.id });
 
@@ -50,7 +50,7 @@ describe('POST /api/election/reset', () => {
 
   it('leaves the results empty', async () => {
     await runElection();
-    await setLocked(true);
+    await prepareElection();
     await reset();
 
     const results = await request(app).get('/api/results').set(bearer(adminToken));
@@ -61,19 +61,18 @@ describe('POST /api/election/reset', () => {
     expect(participation.body.participants).toEqual([]);
   });
 
-  it('refuses to run while voting is open, with 409', async () => {
+  it('refuses to run while the election is running, with 423', async () => {
     await runElection();
 
     const res = await reset();
 
-    expect(res.status).toBe(409);
-    expect(res.body.error.message).toMatch(/lock/i);
+    expect(res.status).toBe(423);
+    expect(res.body.error.message).toMatch(/unlock/i);
     expect(await Vote.countDocuments()).toBe(2);
   });
 
   it('is admin only', async () => {
     const { token } = await createUser();
-    await setLocked(true);
 
     const res = await reset(token);
 
