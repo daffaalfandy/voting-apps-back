@@ -1,0 +1,69 @@
+name: voting-apps
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    environment:
+      PORT: 4000
+      MONGO_URL: mongodb://mongo:27017/voting
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      ADMIN_NAME: ${ADMIN_NAME:-Arthur Vance}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin12345}
+      SEED_DEMO: ${SEED_DEMO:-true}
+    ports:
+      - "4000:4000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build:
+      context: ${FRONTEND_PATH:-../voting-apps-front}
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: http://api:4000
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  test:
+    build:
+      context: .
+      target: dev
+    profiles: ["test"]
+    environment:
+      MONGO_URL: mongodb://mongo:27017/voting_test
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./vitest.config.ts:/app/vitest.config.ts
+    command: ["npm", "test"]
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
