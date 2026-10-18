@@ -23,7 +23,7 @@ export function createApp() {
   app.use('/api/users', requireAuth, requireRole('admin'), usersRouter);
   app.use('/api/candidates', requireAuth, candidatesRouter);
   app.use('/api/votes', requireAuth, requireRole('voter'), votesRouter);
-  app.use('/api/settings', requireAuth, requireRole('admin'), settingsRouter);
+  app.use('/api/settings', requireAuth, settingsRouter);
   app.use('/api/results', requireAuth, requireRole('admin'), resultsRouter);
   app.use('/api/participation', requireAuth, requireRole('admin'), participationRouter);
 
