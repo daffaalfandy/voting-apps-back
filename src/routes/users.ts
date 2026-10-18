@@ -124,3 +124,12 @@ usersRouter.delete('/:id', async (req, res) => {
 
   res.status(204).end();
 });
+
+usersRouter.delete('/:id/vote', async (req, res) => {
+  const { deletedCount } = await Vote.deleteOne({ user: req.params.id });
+  if (deletedCount === 0) {
+    throw new HttpError(404, 'This user has no vote to reset');
+  }
+
+  res.status(204).end();
+});
