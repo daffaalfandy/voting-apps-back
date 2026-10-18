@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import { requireAuth, requireRole } from './middleware/auth.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import { authRouter } from './routes/auth.js';
+import { candidatesRouter } from './routes/candidates.js';
 import { usersRouter } from './routes/users.js';
 
 export function createApp() {
@@ -16,6 +17,7 @@ export function createApp() {
   });
   app.use('/api/auth', authRouter);
   app.use('/api/users', requireAuth, requireRole('admin'), usersRouter);
+  app.use('/api/candidates', requireAuth, candidatesRouter);
 
   app.use(notFound);
   app.use(errorHandler);
