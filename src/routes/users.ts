@@ -32,7 +32,6 @@ const createSchema = z
     }
   });
 
-// Strict: a role is fixed at creation because admins and voters hold different credentials.
 const updateSchema = z
   .strictObject({
     name: nameSchema.optional(),
@@ -98,7 +97,6 @@ usersRouter.post('/', requireUnlocked, async (req, res) => {
   });
   await saveUser(user);
 
-  // The plain code is returned once, here; only its hash is stored.
   res.status(201).json({ user: toPublicUser(user, null), ...(voteCode && { voteCode }) });
 });
 
@@ -106,7 +104,6 @@ usersRouter.patch('/:id', requireUnlocked, async (req, res) => {
   const updates = updateSchema.parse(req.body);
   const user = await findUser(req.params.id);
 
-  // Prevents an admin from locking themselves out of the console.
   if (user.id === currentUser(req).id && updates.status !== undefined && updates.status !== user.status) {
     throw new HttpError(400, 'You cannot change your own status');
   }

@@ -9,7 +9,6 @@ const userSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    // Administrators sign in with a password, voters with a vote code; each role stores only its own.
     passwordHash: { type: String },
     voteCodeHash: { type: String },
     role: { type: String, enum: USER_ROLES, required: true, default: 'voter' },

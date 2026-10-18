@@ -19,7 +19,6 @@ const adminLoginSchema = z.object({
   password: z.string({ error: 'Password is required' }).min(1, 'Password is required'),
 });
 
-// Suspension is checked only after the credentials match, so a wrong guess never reveals account state.
 async function startSession(res: Response, user: UserDoc) {
   if (user.status === 'suspended') {
     throw new HttpError(403, 'This account is suspended. Contact the election administrator.');

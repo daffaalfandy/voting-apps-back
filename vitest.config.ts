@@ -4,7 +4,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
-    // Suites share one database, so they must not run at the same time.
     fileParallelism: false,
     env: {
       NODE_ENV: 'test',

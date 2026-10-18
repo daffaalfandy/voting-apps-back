@@ -9,7 +9,6 @@ export function signToken(userId: string): string {
   });
 }
 
-/** Returns the user id from a valid token; throws on a bad signature, expiry, or missing subject. */
 export function verifyToken(token: string): string {
   const payload = jwt.verify(token, config.JWT_SECRET, { algorithms: ['HS256'] });
   if (typeof payload === 'string' || !payload.sub) {

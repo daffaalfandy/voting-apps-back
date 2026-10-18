@@ -2,7 +2,6 @@ import { Schema, model, type Types } from 'mongoose';
 
 const voteSchema = new Schema(
   {
-    // Unique per user: the database, not application code, enforces one vote each.
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     candidate: { type: Schema.Types.ObjectId, ref: 'Candidate', required: true, index: true },
   },
@@ -16,7 +15,6 @@ export async function findVotedAt(userId: Types.ObjectId | string): Promise<Date
   return vote?.createdAt ?? null;
 }
 
-/** Map of candidate id to number of votes; candidates without votes are absent. */
 export async function countVotesByCandidate(): Promise<Map<string, number>> {
   const rows = await Vote.aggregate<{ _id: Types.ObjectId; count: number }>([
     { $group: { _id: '$candidate', count: { $sum: 1 } } },

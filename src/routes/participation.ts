@@ -4,7 +4,6 @@ import { Vote } from '../models/vote.js';
 
 export const participationRouter = Router();
 
-// Who has voted and when. The candidate is never read here, so choices cannot leak through this list.
 participationRouter.get('/', async (_req, res) => {
   const votes = await Vote.find().sort({ createdAt: -1 }).select('user createdAt').lean();
   const users = await User.find({ _id: { $in: votes.map((vote) => vote.user) } });

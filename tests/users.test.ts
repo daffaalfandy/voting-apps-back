@@ -74,7 +74,6 @@ describe('GET /api/users', () => {
     const notVoted = await request(app).get('/api/users?voted=false').set(bearer(admin.token));
 
     expect(voted.body.users.map((u: { name: string }) => u.name)).toEqual(['Sarah Jenkins']);
-    // Admins cannot vote, so they never count as "not voted".
     expect(notVoted.body.users.map((u: { name: string }) => u.name)).toEqual(['David Kim']);
   });
 

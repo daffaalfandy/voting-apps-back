@@ -4,7 +4,6 @@ import { isDuplicateKeyError } from '../errors.js';
 
 export const normalizeName = (name: string) => name.normalize('NFKC').trim().replace(/\s+/g, ' ');
 
-// Letters in any script plus combining marks, spaces and . ' - so "Dr. Zoë O'Brien-Núñez" passes.
 export const candidateNameSchema = z
   .string({ error: 'Name is required' })
   .transform(normalizeName)
@@ -20,7 +19,6 @@ export const candidateNameSchema = z
 const candidateSchema = new Schema(
   {
     name: { type: String, required: true },
-    // Lowercased, space-collapsed name; the unique index stops "marcus  CHEN" duplicating "Marcus Chen".
     normalizedName: { type: String, required: true, unique: true },
     isWriteIn: { type: Boolean, required: true, default: false },
   },
@@ -38,7 +36,6 @@ export type CandidateDoc = HydratedDocument<InferSchemaType<typeof candidateSche
 
 export const Candidate = model('Candidate', candidateSchema);
 
-/** Returns the candidate whose normalized name matches, creating a write-in candidate if none does. */
 export async function findOrCreateWriteIn(name: string): Promise<CandidateDoc> {
   const displayName = normalizeName(name);
   const normalizedName = displayName.toLowerCase();
@@ -52,7 +49,6 @@ export async function findOrCreateWriteIn(name: string): Promise<CandidateDoc> {
   try {
     return await upsert();
   } catch (err) {
-    // Two concurrent upserts can both miss and race on the unique index; the retry finds the winner.
     if (isDuplicateKeyError(err)) {
       return upsert();
     }

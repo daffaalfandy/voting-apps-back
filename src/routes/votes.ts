@@ -35,7 +35,6 @@ votesRouter.post('/', async (req, res) => {
     const vote = await Vote.create({ user: me._id, candidate: candidate._id });
     res.status(201).json({ vote: { candidate: toPublicCandidate(candidate), createdAt: vote.createdAt } });
   } catch (err) {
-    // A simultaneous request from the same voter won the race to the unique index.
     if (isDuplicateKeyError(err)) {
       throw new HttpError(409, ALREADY_VOTED);
     }

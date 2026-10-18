@@ -3,7 +3,6 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Used by the compose "test" service and for local development.
 FROM deps AS dev
 COPY . .
 CMD ["npm", "run", "dev"]

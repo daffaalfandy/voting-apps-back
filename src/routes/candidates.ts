@@ -13,7 +13,6 @@ export const candidatesRouter = Router();
 candidatesRouter.get('/', async (req, res) => {
   const candidates = await Candidate.find().collation({ locale: 'en' }).sort({ name: 1 });
 
-  // Tallies stay admin-only so voters are not swayed by the running count.
   if (currentUser(req).role !== 'admin') {
     res.json({ candidates: candidates.map(toPublicCandidate) });
     return;

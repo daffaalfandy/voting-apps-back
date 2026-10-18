@@ -55,7 +55,6 @@ describe('GET /api/results', () => {
 
     const res = await getResults();
 
-    // Suspended voters' ballots still count toward the tally but not toward turnout.
     expect(res.body.totalVotes).toBe(2);
     expect(res.body.participation).toEqual({ eligible: 2, voted: 1 });
   });

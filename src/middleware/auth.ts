@@ -12,7 +12,6 @@ declare global {
   }
 }
 
-// The user is reloaded on every request so deletions, suspensions and role changes apply immediately.
 export const requireAuth: RequestHandler = async (req, _res, next) => {
   const header = req.get('authorization');
   const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;

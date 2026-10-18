@@ -2,7 +2,6 @@ import type { RequestHandler } from 'express';
 import { HttpError } from '../errors.js';
 import { getSettings } from '../models/setting.js';
 
-// Freezes the roster (users and candidates); voting itself is not affected.
 export const requireUnlocked: RequestHandler = async (_req, _res, next) => {
   const { locked } = await getSettings();
   if (locked) {

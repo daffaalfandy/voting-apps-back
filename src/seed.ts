@@ -4,7 +4,6 @@ import { Candidate } from './models/candidate.js';
 import { User } from './models/user.js';
 import { Vote } from './models/vote.js';
 
-// Fixed codes so the README can list them; real voters get random ones from the console.
 export const DEMO_VOTERS = [
   { name: 'Sarah Jenkins', email: 'sarah@example.com', code: 'SRJN-4826' },
   { name: 'David Kim', email: 'david@example.com', code: 'DVKM-7395' },
@@ -24,7 +23,6 @@ interface SeedOptions {
   demo: boolean;
 }
 
-/** Seeds only an empty database, so restarts never duplicate or overwrite data. Returns whether it seeded. */
 export async function seedDatabase({ admin, demo }: SeedOptions): Promise<boolean> {
   if (await User.exists({})) {
     return false;
