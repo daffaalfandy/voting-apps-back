@@ -15,3 +15,11 @@ export async function findVotedAt(userId: Types.ObjectId | string): Promise<Date
   const vote = await Vote.findOne({ user: userId }).select('createdAt').lean();
   return vote?.createdAt ?? null;
 }
+
+/** Map of candidate id to number of votes; candidates without votes are absent. */
+export async function countVotesByCandidate(): Promise<Map<string, number>> {
+  const rows = await Vote.aggregate<{ _id: Types.ObjectId; count: number }>([
+    { $group: { _id: '$candidate', count: { $sum: 1 } } },
+  ]);
+  return new Map(rows.map((row) => [String(row._id), row.count]));
+}
