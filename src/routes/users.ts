@@ -1,48 +1,44 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { hashPassword } from '../auth/password.js';
+import { generateVoteCode, hashVoteCode } from '../auth/voteCode.js';
 import { HttpError, isDuplicateKeyError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
 import { requireUnlocked } from '../middleware/lock.js';
 import { USER_ROLES, USER_STATUSES, User, toPublicUser, type UserDoc } from '../models/user.js';
 import { Vote } from '../models/vote.js';
+import { emailSchema, nameSchema, passwordSchema } from '../schemas.js';
 
-const name = z
-  .string({ error: 'Name is required' })
-  .trim()
-  .min(1, 'Name is required')
-  .max(100, 'Name must be at most 100 characters');
-const email = z
-  .string({ error: 'Email is required' })
-  .trim()
-  .toLowerCase()
-  .pipe(z.email('Enter a valid email address'));
-const password = z
-  .string({ error: 'Password is required' })
-  .min(8, 'Password must be at least 8 characters')
-  .max(128, 'Password must be at most 128 characters');
-const role = z.enum(USER_ROLES, 'Role must be admin or voter');
-const status = z.enum(USER_STATUSES, 'Status must be active or suspended');
+const VOTER_PASSWORD_MESSAGE = 'Voters sign in with a vote code, not a password';
 
 const listQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
   voted: z.enum(['true', 'false']).optional(),
 });
 
-const createSchema = z.object({
-  name,
-  email,
-  password,
-  role: role.default('voter'),
-});
-
-const updateSchema = z
+const createSchema = z
   .object({
-    name: name.optional(),
-    email: email.optional(),
-    password: password.optional(),
-    role: role.optional(),
-    status: status.optional(),
+    name: nameSchema,
+    email: emailSchema,
+    role: z.enum(USER_ROLES, 'Role must be admin or voter').default('voter'),
+    password: passwordSchema.optional(),
+  })
+  .superRefine((body, ctx) => {
+    if (body.role === 'admin' && body.password === undefined) {
+      ctx.addIssue({ code: 'custom', path: ['password'], message: 'Administrators need a password' });
+    }
+    if (body.role === 'voter' && body.password !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['password'], message: VOTER_PASSWORD_MESSAGE });
+    }
+  });
+
+// Strict: a role is fixed at creation because admins and voters hold different credentials.
+const updateSchema = z
+  .strictObject({
+    name: nameSchema.optional(),
+    email: emailSchema.optional(),
+    password: passwordSchema.optional(),
+    status: z.enum(USER_STATUSES, 'Status must be active or suspended').optional(),
   })
   .refine((body) => Object.values(body).some((value) => value !== undefined), {
     message: 'Provide at least one field to update',
@@ -59,6 +55,14 @@ async function saveUser(user: UserDoc) {
     }
     throw err;
   }
+}
+
+async function findUser(id: string) {
+  const user = await User.findById(id);
+  if (!user) {
+    throw new HttpError(404, 'User not found');
+  }
+  return user;
 }
 
 export const usersRouter = Router();
@@ -83,46 +87,54 @@ usersRouter.get('/', async (req, res) => {
 
 usersRouter.post('/', requireUnlocked, async (req, res) => {
   const body = createSchema.parse(req.body);
+  const voteCode = body.role === 'voter' ? generateVoteCode() : undefined;
 
   const user = new User({
     name: body.name,
     email: body.email,
     role: body.role,
-    passwordHash: await hashPassword(body.password),
+    passwordHash: body.password === undefined ? undefined : await hashPassword(body.password),
+    voteCodeHash: voteCode === undefined ? undefined : await hashVoteCode(voteCode),
   });
   await saveUser(user);
 
-  res.status(201).json({ user: toPublicUser(user, null) });
+  // The plain code is returned once, here; only its hash is stored.
+  res.status(201).json({ user: toPublicUser(user, null), ...(voteCode && { voteCode }) });
 });
 
 usersRouter.patch('/:id', requireUnlocked, async (req, res) => {
   const updates = updateSchema.parse(req.body);
-  const me = currentUser(req);
+  const user = await findUser(req.params.id);
 
-  const user = await User.findById(req.params.id);
-  if (!user) {
-    throw new HttpError(404, 'User not found');
-  }
-
-  const roleChanges = updates.role !== undefined && updates.role !== user.role;
-  const statusChanges = updates.status !== undefined && updates.status !== user.status;
   // Prevents an admin from locking themselves out of the console.
-  if (user.id === me.id && (roleChanges || statusChanges)) {
-    throw new HttpError(400, 'You cannot change your own role or status');
+  if (user.id === currentUser(req).id && updates.status !== undefined && updates.status !== user.status) {
+    throw new HttpError(400, 'You cannot change your own status');
   }
-  if (roleChanges && (await Vote.exists({ user: user._id }))) {
-    throw new HttpError(409, 'This user has already voted, so their role cannot change');
+  if (updates.password !== undefined && user.role !== 'admin') {
+    throw new HttpError(400, VOTER_PASSWORD_MESSAGE);
   }
 
   if (updates.name !== undefined) user.name = updates.name;
   if (updates.email !== undefined) user.email = updates.email;
-  if (updates.role !== undefined) user.role = updates.role;
   if (updates.status !== undefined) user.status = updates.status;
   if (updates.password !== undefined) user.passwordHash = await hashPassword(updates.password);
   await saveUser(user);
 
   const vote = await Vote.findOne({ user: user._id }).select('createdAt').lean();
   res.json({ user: toPublicUser(user, vote?.createdAt ?? null) });
+});
+
+usersRouter.post('/:id/vote-code', requireUnlocked, async (req, res) => {
+  const user = await findUser(req.params.id);
+  if (user.role !== 'voter') {
+    throw new HttpError(400, 'Only voters have vote codes; administrators use a password');
+  }
+
+  const voteCode = generateVoteCode();
+  user.voteCodeHash = await hashVoteCode(voteCode);
+  await user.save();
+
+  res.json({ voteCode });
 });
 
 usersRouter.delete('/:id', requireUnlocked, async (req, res) => {
