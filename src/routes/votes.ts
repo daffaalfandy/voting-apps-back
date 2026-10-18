@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { HttpError, isDuplicateKeyError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
 import { Candidate, candidateNameSchema, findOrCreateWriteIn, toPublicCandidate } from '../models/candidate.js';
+import { getSettings } from '../models/setting.js';
 import { Vote } from '../models/vote.js';
 
 const castSchema = z
@@ -22,6 +23,9 @@ votesRouter.post('/', async (req, res) => {
   const body = castSchema.parse(req.body);
   const me = currentUser(req);
 
+  if ((await getSettings()).locked) {
+    throw new HttpError(423, 'Voting is closed right now. Try again when the election administrator reopens it.');
+  }
   if (await Vote.exists({ user: me._id })) {
     throw new HttpError(409, ALREADY_VOTED);
   }
