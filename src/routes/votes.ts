@@ -23,8 +23,8 @@ votesRouter.post('/', async (req, res) => {
   const body = castSchema.parse(req.body);
   const me = currentUser(req);
 
-  if ((await getSettings()).locked) {
-    throw new HttpError(423, 'Voting is closed right now. Try again when the election administrator reopens it.');
+  if (!(await getSettings()).locked) {
+    throw new HttpError(423, 'Voting has not started yet. The election administrator is still preparing the election.');
   }
   if (await Vote.exists({ user: me._id })) {
     throw new HttpError(409, ALREADY_VOTED);
