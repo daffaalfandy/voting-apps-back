@@ -1,5 +1,6 @@
 import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose';
 import { z } from 'zod';
+import { isDuplicateKeyError } from '../errors.js';
 
 export const normalizeName = (name: string) => name.normalize('NFKC').trim().replace(/\s+/g, ' ');
 
@@ -36,6 +37,28 @@ candidateSchema.pre('validate', function () {
 export type CandidateDoc = HydratedDocument<InferSchemaType<typeof candidateSchema>>;
 
 export const Candidate = model('Candidate', candidateSchema);
+
+/** Returns the candidate whose normalized name matches, creating a write-in candidate if none does. */
+export async function findOrCreateWriteIn(name: string): Promise<CandidateDoc> {
+  const displayName = normalizeName(name);
+  const normalizedName = displayName.toLowerCase();
+  const upsert = () =>
+    Candidate.findOneAndUpdate(
+      { normalizedName },
+      { $setOnInsert: { name: displayName, normalizedName, isWriteIn: true } },
+      { upsert: true, new: true },
+    ).orFail();
+
+  try {
+    return await upsert();
+  } catch (err) {
+    // Two concurrent upserts can both miss and race on the unique index; the retry finds the winner.
+    if (isDuplicateKeyError(err)) {
+      return upsert();
+    }
+    throw err;
+  }
+}
 
 export function toPublicCandidate(candidate: CandidateDoc) {
   return { id: candidate.id as string, name: candidate.name, isWriteIn: candidate.isWriteIn };
