@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { Candidate } from '../src/models/candidate.js';
 import { User } from '../src/models/user.js';
 import { Vote } from '../src/models/vote.js';
 import { app, bearer, createAdmin, createUser } from './helpers.js';
@@ -225,6 +226,29 @@ describe('DELETE /api/users/:id', () => {
 
   it('returns 404 for an unknown user', async () => {
     const res = await request(app).delete(`/api/users/${new Types.ObjectId()}`).set(bearer(admin.token));
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('DELETE /api/users/:id/vote', () => {
+  it('clears the vote so the voter can vote again', async () => {
+    const voter = await createUser();
+    const candidate = await Candidate.create({ name: 'Marcus Chen' });
+    await castVote(voter.user._id);
+
+    const res = await request(app).delete(`/api/users/${voter.user.id}/vote`).set(bearer(admin.token));
+
+    expect(res.status).toBe(204);
+    expect(await Vote.countDocuments({ user: voter.user._id })).toBe(0);
+    const revote = await request(app).post('/api/votes').set(bearer(voter.token)).send({ candidateId: candidate.id });
+    expect(revote.status).toBe(201);
+  });
+
+  it('returns 404 when the user has not voted', async () => {
+    const { user } = await createUser();
+
+    const res = await request(app).delete(`/api/users/${user.id}/vote`).set(bearer(admin.token));
 
     expect(res.status).toBe(404);
   });
