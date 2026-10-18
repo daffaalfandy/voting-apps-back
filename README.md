@@ -109,6 +109,16 @@ All routes are under `/api`. Send the token from either sign-in route as `Author
 - **Who voted for whom.** A vote stores the voter so it can be reset or removed with the account. No endpoint shows another person's choice: administrators see totals, and the participation list says only who voted and when.
 - **Passwords and vote codes** are hashed with bcrypt. Sign-in takes the same time whether or not the email exists.
 
+## Architecture
+
+### System
+
+![System architecture: the browser talks to nginx, which serves the web app and proxies /api to the Express API; the API and the test runner use MongoDB, all inside Docker Compose](docs/architecture.png)
+
+### Database
+
+![Database diagram: users, candidates, votes and settings collections, with each vote linked to one user and one candidate](docs/database.png)
+
 ## Layout
 
 ```
