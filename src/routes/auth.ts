@@ -8,8 +8,12 @@ import { User, toPublicUser } from '../models/user.js';
 import { findVotedAt } from '../models/vote.js';
 
 const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().pipe(z.email()),
-  password: z.string().min(1),
+  email: z
+    .string({ error: 'Email is required' })
+    .trim()
+    .toLowerCase()
+    .pipe(z.email('Enter a valid email address')),
+  password: z.string({ error: 'Password is required' }).min(1, 'Password is required'),
 });
 
 export const authRouter = Router();

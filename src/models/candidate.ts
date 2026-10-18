@@ -6,13 +6,13 @@ export const normalizeName = (name: string) => name.normalize('NFKC').trim().rep
 
 // Letters in any script plus combining marks, spaces and . ' - so "Dr. Zoë O'Brien-Núñez" passes.
 export const candidateNameSchema = z
-  .string()
+  .string({ error: 'Name is required' })
   .transform(normalizeName)
   .pipe(
     z
       .string()
-      .min(2)
-      .max(80)
+      .min(2, 'Name must be at least 2 characters')
+      .max(80, 'Name must be at most 80 characters')
       .regex(/^[\p{L}\p{M} .'-]+$/u, "Use letters, spaces and . ' - only")
       .regex(/\p{L}/u, 'Include at least one letter'),
   );

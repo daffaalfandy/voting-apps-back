@@ -7,9 +7,22 @@ import { requireUnlocked } from '../middleware/lock.js';
 import { USER_ROLES, USER_STATUSES, User, toPublicUser, type UserDoc } from '../models/user.js';
 import { Vote } from '../models/vote.js';
 
-const name = z.string().trim().min(1).max(100);
-const email = z.string().trim().toLowerCase().pipe(z.email());
-const password = z.string().min(8).max(128);
+const name = z
+  .string({ error: 'Name is required' })
+  .trim()
+  .min(1, 'Name is required')
+  .max(100, 'Name must be at most 100 characters');
+const email = z
+  .string({ error: 'Email is required' })
+  .trim()
+  .toLowerCase()
+  .pipe(z.email('Enter a valid email address'));
+const password = z
+  .string({ error: 'Password is required' })
+  .min(8, 'Password must be at least 8 characters')
+  .max(128, 'Password must be at most 128 characters');
+const role = z.enum(USER_ROLES, 'Role must be admin or voter');
+const status = z.enum(USER_STATUSES, 'Status must be active or suspended');
 
 const listQuerySchema = z.object({
   search: z.string().trim().max(100).optional(),
@@ -20,7 +33,7 @@ const createSchema = z.object({
   name,
   email,
   password,
-  role: z.enum(USER_ROLES).default('voter'),
+  role: role.default('voter'),
 });
 
 const updateSchema = z
@@ -28,8 +41,8 @@ const updateSchema = z
     name: name.optional(),
     email: email.optional(),
     password: password.optional(),
-    role: z.enum(USER_ROLES).optional(),
-    status: z.enum(USER_STATUSES).optional(),
+    role: role.optional(),
+    status: status.optional(),
   })
   .refine((body) => Object.values(body).some((value) => value !== undefined), {
     message: 'Provide at least one field to update',

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { getSettings, updateSettings } from '../models/setting.js';
 
-const updateSchema = z.object({ locked: z.boolean() });
+const updateSchema = z.object({ locked: z.boolean('locked must be true or false') });
 
 export const settingsRouter = Router();
 
