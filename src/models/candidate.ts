@@ -46,7 +46,7 @@ export async function findOrCreateWriteIn(name: string): Promise<CandidateDoc> {
     Candidate.findOneAndUpdate(
       { normalizedName },
       { $setOnInsert: { name: displayName, normalizedName, isWriteIn: true } },
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: 'after' },
     ).orFail();
 
   try {

@@ -19,6 +19,6 @@ export async function getSettings(): Promise<SystemSettings> {
 }
 
 export async function updateSettings(changes: SystemSettings): Promise<SystemSettings> {
-  const doc = await Setting.findOneAndUpdate({ key: SYSTEM_KEY }, { $set: changes }, { upsert: true, new: true }).lean();
+  const doc = await Setting.findOneAndUpdate({ key: SYSTEM_KEY }, { $set: changes }, { upsert: true, returnDocument: 'after' }).lean();
   return { locked: doc!.locked };
 }
