@@ -23,17 +23,17 @@ describe('GET /api/participation', () => {
   });
 
   it('lists voters who voted, newest first, without their choice', async () => {
-    const elena = await createUser({ name: 'Elena Rostova', email: 'elena@example.com' });
-    const amara = await createUser({ name: 'Amara Okafor', email: 'amara@example.com', status: 'suspended' });
-    await createUser({ name: 'David Kim' });
-    await Vote.create({ user: elena.user._id, candidate: new Types.ObjectId(), createdAt: new Date('2026-10-15T09:42:00Z') });
-    await Vote.create({ user: amara.user._id, candidate: new Types.ObjectId(), createdAt: new Date('2026-10-15T11:20:00Z') });
+    const eka = await createUser({ name: 'Eka Purnamasari', email: 'eka@example.com' });
+    const ayu = await createUser({ name: 'Ayu Wulandari', email: 'ayu@example.com', status: 'suspended' });
+    await createUser({ name: 'Dimas Pratama' });
+    await Vote.create({ user: eka.user._id, candidate: new Types.ObjectId(), createdAt: new Date('2026-10-15T09:42:00Z') });
+    await Vote.create({ user: ayu.user._id, candidate: new Types.ObjectId(), createdAt: new Date('2026-10-15T11:20:00Z') });
 
     const res = await getParticipation();
 
     expect(res.body.participants).toEqual([
-      { id: amara.user.id, name: 'Amara Okafor', email: 'amara@example.com', status: 'suspended', votedAt: '2026-10-15T11:20:00.000Z' },
-      { id: elena.user.id, name: 'Elena Rostova', email: 'elena@example.com', status: 'active', votedAt: '2026-10-15T09:42:00.000Z' },
+      { id: ayu.user.id, name: 'Ayu Wulandari', email: 'ayu@example.com', status: 'suspended', votedAt: '2026-10-15T11:20:00.000Z' },
+      { id: eka.user.id, name: 'Eka Purnamasari', email: 'eka@example.com', status: 'active', votedAt: '2026-10-15T09:42:00.000Z' },
     ]);
   });
 

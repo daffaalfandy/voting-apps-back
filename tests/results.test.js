@@ -26,30 +26,30 @@ describe('GET /api/results', () => {
   });
 
   it('ranks candidates by votes, then name, and includes those with none', async () => {
-    const sofia = await Candidate.create({ name: 'Sofia Rodriguez' });
-    const marcus = await Candidate.create({ name: 'Marcus Chen' });
-    const jane = await Candidate.create({ name: 'Jane Doe', isWriteIn: true });
-    await Candidate.create({ name: 'Evelyn Reed' });
-    await voteFor(sofia);
-    await voteFor(sofia);
-    await voteFor(marcus);
-    await voteFor(jane);
+    const sri = await Candidate.create({ name: 'Sri Wahyuni' });
+    const mahendra = await Candidate.create({ name: 'Mahendra Wijaya' });
+    const joko = await Candidate.create({ name: 'Joko Susilo', isWriteIn: true });
+    await Candidate.create({ name: 'Endang Kusumawati' });
+    await voteFor(sri);
+    await voteFor(sri);
+    await voteFor(mahendra);
+    await voteFor(joko);
 
     const res = await getResults();
 
     expect(res.body.totalVotes).toBe(4);
     expect(res.body.candidates).toEqual([
-      { id: sofia.id, name: 'Sofia Rodriguez', isWriteIn: false, votes: 2 },
-      { id: jane.id, name: 'Jane Doe', isWriteIn: true, votes: 1 },
-      { id: marcus.id, name: 'Marcus Chen', isWriteIn: false, votes: 1 },
-      { id: expect.any(String), name: 'Evelyn Reed', isWriteIn: false, votes: 0 },
+      { id: sri.id, name: 'Sri Wahyuni', isWriteIn: false, votes: 2 },
+      { id: joko.id, name: 'Joko Susilo', isWriteIn: true, votes: 1 },
+      { id: mahendra.id, name: 'Mahendra Wijaya', isWriteIn: false, votes: 1 },
+      { id: expect.any(String), name: 'Endang Kusumawati', isWriteIn: false, votes: 0 },
     ]);
   });
 
   it('counts participation among active voters only', async () => {
-    const marcus = await Candidate.create({ name: 'Marcus Chen' });
-    await voteFor(marcus);
-    await voteFor(marcus, 'suspended');
+    const mahendra = await Candidate.create({ name: 'Mahendra Wijaya' });
+    await voteFor(mahendra);
+    await voteFor(mahendra, 'suspended');
     await createUser();
     await createUser({ status: 'suspended' });
 

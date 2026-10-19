@@ -12,7 +12,7 @@ let candidate;
 beforeEach(async () => {
   adminToken = (await createAdmin()).token;
   voter = await createUser();
-  candidate = await Candidate.create({ name: 'Marcus Chen' });
+  candidate = await Candidate.create({ name: 'Mahendra Wijaya' });
 });
 
 const setLocked = (locked) => request(app).put('/api/settings').set(bearer(adminToken)).send({ locked });
@@ -61,13 +61,13 @@ describe('while the system is unlocked (preparing the election)', () => {
     const other = await createUser();
 
     const byId = await request(app).post('/api/votes').set(bearer(voter.token)).send({ candidateId: candidate.id });
-    const writeIn = await request(app).post('/api/votes').set(bearer(other.token)).send({ name: 'Jane Doe' });
+    const writeIn = await request(app).post('/api/votes').set(bearer(other.token)).send({ name: 'Joko Susilo' });
 
     expect(byId.status).toBe(423);
     expect(byId.body.error.message).toMatch(/voting has not started/i);
     expect(writeIn.status).toBe(423);
     expect(await Vote.countDocuments()).toBe(0);
-    expect(await Candidate.countDocuments({ name: 'Jane Doe' })).toBe(0);
+    expect(await Candidate.countDocuments({ name: 'Joko Susilo' })).toBe(0);
   });
 });
 
@@ -77,12 +77,12 @@ describe('while the system is locked', () => {
   });
 
   const guarded = [
-    { label: 'create user', send: () => request(app).post('/api/users').send({ name: 'New Voter', email: 'new@example.com', password: 'secret-pass' }) },
-    { label: 'update user', send: () => request(app).patch(`/api/users/${voter.user.id}`).send({ name: 'Renamed' }) },
+    { label: 'create user', send: () => request(app).post('/api/users').send({ name: 'Wulan Sari', email: 'new@example.com', password: 'secret-pass' }) },
+    { label: 'update user', send: () => request(app).patch(`/api/users/${voter.user.id}`).send({ name: 'Rina Kartika' }) },
     { label: 'delete user', send: () => request(app).delete(`/api/users/${voter.user.id}`) },
     { label: 'reset vote', send: () => request(app).delete(`/api/users/${voter.user.id}/vote`) },
     { label: 'issue vote code', send: () => request(app).post(`/api/users/${voter.user.id}/vote-code`) },
-    { label: 'create candidate', send: () => request(app).post('/api/candidates').send({ name: 'Sofia Rodriguez' }) },
+    { label: 'create candidate', send: () => request(app).post('/api/candidates').send({ name: 'Sri Wahyuni' }) },
     { label: 'delete candidate', send: () => request(app).delete(`/api/candidates/${candidate.id}`) },
   ];
 
@@ -105,7 +105,7 @@ describe('while the system is locked', () => {
     const other = await createUser();
 
     const byId = await request(app).post('/api/votes').set(bearer(voter.token)).send({ candidateId: candidate.id });
-    const writeIn = await request(app).post('/api/votes').set(bearer(other.token)).send({ name: 'Jane Doe' });
+    const writeIn = await request(app).post('/api/votes').set(bearer(other.token)).send({ name: 'Joko Susilo' });
 
     expect(byId.status).toBe(201);
     expect(writeIn.status).toBe(201);

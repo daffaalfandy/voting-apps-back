@@ -9,7 +9,7 @@ import { app, bearer, createAdmin, createUser, startElection } from './helpers.j
 let admin;
 
 beforeEach(async () => {
-  admin = await createAdmin({ name: 'Arthur Vance', email: 'admin@example.com' });
+  admin = await createAdmin({ name: 'Agus Setiawan', email: 'admin@example.com' });
 });
 
 const castVote = (userId) => Vote.create({ user: userId, candidate: new Types.ObjectId() });
@@ -32,33 +32,33 @@ describe('admin-only access', () => {
 
 describe('GET /api/users', () => {
   it('lists users sorted by name with their voting status', async () => {
-    const { user: sarah } = await createUser({ name: 'Sarah Jenkins' });
-    await createUser({ name: 'David Kim' });
-    await castVote(sarah._id);
+    const { user: siti } = await createUser({ name: 'Siti Rahayu' });
+    await createUser({ name: 'Dimas Pratama' });
+    await castVote(siti._id);
 
     const res = await request(app).get('/api/users').set(bearer(admin.token));
 
     expect(res.status).toBe(200);
-    expect(res.body.users.map((u) => u.name)).toEqual(['Arthur Vance', 'David Kim', 'Sarah Jenkins']);
-    const sarahRow = res.body.users.find((u) => u.name === 'Sarah Jenkins');
-    expect(sarahRow.hasVoted).toBe(true);
-    expect(sarahRow.votedAt).toBeTypeOf('string');
-    expect(sarahRow).not.toHaveProperty('passwordHash');
+    expect(res.body.users.map((u) => u.name)).toEqual(['Agus Setiawan', 'Dimas Pratama', 'Siti Rahayu']);
+    const sitiRow = res.body.users.find((u) => u.name === 'Siti Rahayu');
+    expect(sitiRow.hasVoted).toBe(true);
+    expect(sitiRow.votedAt).toBeTypeOf('string');
+    expect(sitiRow).not.toHaveProperty('passwordHash');
   });
 
   it('searches name and email case-insensitively', async () => {
-    await createUser({ name: 'Sarah Jenkins', email: 'sarah@example.com' });
-    await createUser({ name: 'David Kim', email: 'dkim@example.com' });
+    await createUser({ name: 'Siti Rahayu', email: 'siti@example.com' });
+    await createUser({ name: 'Dimas Pratama', email: 'dpratama@example.com' });
 
-    const byName = await request(app).get('/api/users?search=JENK').set(bearer(admin.token));
-    const byEmail = await request(app).get('/api/users?search=dkim@').set(bearer(admin.token));
+    const byName = await request(app).get('/api/users?search=RAHA').set(bearer(admin.token));
+    const byEmail = await request(app).get('/api/users?search=dpratama@').set(bearer(admin.token));
 
-    expect(byName.body.users.map((u) => u.name)).toEqual(['Sarah Jenkins']);
-    expect(byEmail.body.users.map((u) => u.name)).toEqual(['David Kim']);
+    expect(byName.body.users.map((u) => u.name)).toEqual(['Siti Rahayu']);
+    expect(byEmail.body.users.map((u) => u.name)).toEqual(['Dimas Pratama']);
   });
 
   it('treats search input literally, not as a regex', async () => {
-    await createUser({ name: 'Axb Person', email: 'axb@example.com' });
+    await createUser({ name: 'Rizky Ramadhan', email: 'axb@example.com' });
 
     const res = await request(app).get('/api/users?search=a.b').set(bearer(admin.token));
 
@@ -66,15 +66,15 @@ describe('GET /api/users', () => {
   });
 
   it('filters voters by whether they have voted', async () => {
-    const { user: sarah } = await createUser({ name: 'Sarah Jenkins' });
-    await createUser({ name: 'David Kim' });
-    await castVote(sarah._id);
+    const { user: siti } = await createUser({ name: 'Siti Rahayu' });
+    await createUser({ name: 'Dimas Pratama' });
+    await castVote(siti._id);
 
     const voted = await request(app).get('/api/users?voted=true').set(bearer(admin.token));
     const notVoted = await request(app).get('/api/users?voted=false').set(bearer(admin.token));
 
-    expect(voted.body.users.map((u) => u.name)).toEqual(['Sarah Jenkins']);
-    expect(notVoted.body.users.map((u) => u.name)).toEqual(['David Kim']);
+    expect(voted.body.users.map((u) => u.name)).toEqual(['Siti Rahayu']);
+    expect(notVoted.body.users.map((u) => u.name)).toEqual(['Dimas Pratama']);
   });
 
   it('rejects an unknown voted filter value', async () => {
@@ -93,19 +93,19 @@ describe('POST /api/users', () => {
     const res = await request(app)
       .post('/api/users')
       .set(bearer(admin.token))
-      .send({ name: 'Amara Okafor', email: 'Amara@Example.com' });
+      .send({ name: 'Ayu Wulandari', email: 'Ayu@Example.com' });
 
     expect(res.status).toBe(201);
-    expect(res.body.user).toMatchObject({ name: 'Amara Okafor', email: 'amara@example.com', role: 'voter', status: 'active' });
+    expect(res.body.user).toMatchObject({ name: 'Ayu Wulandari', email: 'ayu@example.com', role: 'voter', status: 'active' });
     expect(res.body.voteCode).toMatch(VOTE_CODE);
-    expect((await voterLogin('amara@example.com', res.body.voteCode)).status).toBe(200);
+    expect((await voterLogin('ayu@example.com', res.body.voteCode)).status).toBe(200);
   });
 
   it('creates an administrator with a password and no vote code', async () => {
     const res = await request(app)
       .post('/api/users')
       .set(bearer(admin.token))
-      .send({ name: 'Second Admin', email: 'admin2@example.com', role: 'admin', password: 'secret-pass' });
+      .send({ name: 'Dewi Anggraini', email: 'admin2@example.com', role: 'admin', password: 'secret-pass' });
 
     expect(res.status).toBe(201);
     expect(res.body.user.role).toBe('admin');
@@ -117,11 +117,11 @@ describe('POST /api/users', () => {
     const adminWithout = await request(app)
       .post('/api/users')
       .set(bearer(admin.token))
-      .send({ name: 'No Password', email: 'a@example.com', role: 'admin' });
+      .send({ name: 'Fajar Nugroho', email: 'a@example.com', role: 'admin' });
     const voterWith = await request(app)
       .post('/api/users')
       .set(bearer(admin.token))
-      .send({ name: 'Has Password', email: 'b@example.com', password: 'secret-pass' });
+      .send({ name: 'Lina Marlina', email: 'b@example.com', password: 'secret-pass' });
 
     expect(adminWithout.status).toBe(400);
     expect(adminWithout.body.error.details).toEqual([{ path: 'password', message: 'Administrators need a password' }]);
@@ -132,15 +132,15 @@ describe('POST /api/users', () => {
   it('rejects a duplicate email regardless of case with 409', async () => {
     await createUser({ email: 'taken@example.com' });
 
-    const res = await request(app).post('/api/users').set(bearer(admin.token)).send({ name: 'Copy', email: 'TAKEN@example.com' });
+    const res = await request(app).post('/api/users').set(bearer(admin.token)).send({ name: 'Bayu Saputra', email: 'TAKEN@example.com' });
 
     expect(res.status).toBe(409);
   });
 
   it.each([
     { field: 'name', body: { email: 'a@example.com' } },
-    { field: 'email', body: { name: 'No Email', email: 'nope' } },
-    { field: 'role', body: { name: 'Role', email: 'c@example.com', role: 'root' } },
+    { field: 'email', body: { name: 'Indah Permatasari', email: 'nope' } },
+    { field: 'role', body: { name: 'Yusuf Maulana', email: 'c@example.com', role: 'root' } },
   ])('rejects a bad $field with 400', async ({ field, body }) => {
     const res = await request(app).post('/api/users').set(bearer(admin.token)).send(body);
 
@@ -169,10 +169,10 @@ describe('PATCH /api/users/:id', () => {
     const res = await request(app)
       .patch(`/api/users/${user.id}`)
       .set(bearer(admin.token))
-      .send({ name: 'Renamed', email: 'renamed@example.com', status: 'suspended' });
+      .send({ name: 'Rina Kartika', email: 'renamed@example.com', status: 'suspended' });
 
     expect(res.status).toBe(200);
-    expect(res.body.user).toMatchObject({ name: 'Renamed', email: 'renamed@example.com', role: 'voter', status: 'suspended' });
+    expect(res.body.user).toMatchObject({ name: 'Rina Kartika', email: 'renamed@example.com', role: 'voter', status: 'suspended' });
   });
 
   it("resets an administrator's password", async () => {
@@ -225,14 +225,14 @@ describe('PATCH /api/users/:id', () => {
   });
 
   it('lets admins rename themselves', async () => {
-    const res = await request(app).patch(`/api/users/${admin.user.id}`).set(bearer(admin.token)).send({ name: 'Arthur V.' });
+    const res = await request(app).patch(`/api/users/${admin.user.id}`).set(bearer(admin.token)).send({ name: 'Agus S.' });
 
     expect(res.status).toBe(200);
   });
 
   it('returns 404 for an unknown user and 400 for a malformed id', async () => {
-    const missing = await request(app).patch(`/api/users/${new Types.ObjectId()}`).set(bearer(admin.token)).send({ name: 'X Y' });
-    const malformed = await request(app).patch('/api/users/not-an-id').set(bearer(admin.token)).send({ name: 'X Y' });
+    const missing = await request(app).patch(`/api/users/${new Types.ObjectId()}`).set(bearer(admin.token)).send({ name: 'Gita Purnama' });
+    const malformed = await request(app).patch('/api/users/not-an-id').set(bearer(admin.token)).send({ name: 'Gita Purnama' });
 
     expect(missing.status).toBe(404);
     expect(malformed.status).toBe(400);
@@ -293,7 +293,7 @@ describe('DELETE /api/users/:id', () => {
 describe('DELETE /api/users/:id/vote', () => {
   it('clears the vote so the voter can vote again', async () => {
     const voter = await createUser();
-    const candidate = await Candidate.create({ name: 'Marcus Chen' });
+    const candidate = await Candidate.create({ name: 'Mahendra Wijaya' });
     await castVote(voter.user._id);
 
     const res = await request(app).delete(`/api/users/${voter.user.id}/vote`).set(bearer(admin.token));

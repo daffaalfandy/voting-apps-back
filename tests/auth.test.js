@@ -9,9 +9,9 @@ const adminLogin = (body) => request(app).post('/api/auth/admin/login').send(bod
 
 describe('POST /api/auth/login (voters)', () => {
   it('signs a voter in with email and vote code', async () => {
-    const { user, voteCode } = await createUser({ email: 'sarah@example.com' });
+    const { user, voteCode } = await createUser({ email: 'siti@example.com' });
 
-    const res = await voterLogin({ email: 'sarah@example.com', code: voteCode });
+    const res = await voterLogin({ email: 'siti@example.com', code: voteCode });
 
     expect(res.status).toBe(200);
     expect(res.body.token).toBeTypeOf('string');
@@ -21,21 +21,21 @@ describe('POST /api/auth/login (voters)', () => {
   });
 
   it('accepts the code in lower case, with spaces or without the dash', async () => {
-    const { voteCode } = await createUser({ email: 'david@example.com' });
+    const { voteCode } = await createUser({ email: 'dimas@example.com' });
     const loose = voteCode.toLowerCase().replace('-', ' ');
 
-    const spaced = await voterLogin({ email: '  David@Example.COM ', code: ` ${loose} ` });
-    const joined = await voterLogin({ email: 'david@example.com', code: voteCode.replace('-', '') });
+    const spaced = await voterLogin({ email: '  Dimas@Example.COM ', code: ` ${loose} ` });
+    const joined = await voterLogin({ email: 'dimas@example.com', code: voteCode.replace('-', '') });
 
     expect(spaced.status).toBe(200);
     expect(joined.status).toBe(200);
   });
 
   it('gives the same 401 for an unknown email and a wrong code', async () => {
-    await createUser({ email: 'elena@example.com' });
+    await createUser({ email: 'eka@example.com' });
 
     const unknown = await voterLogin({ email: 'ghost@example.com', code: 'ABCD-EFGH' });
-    const wrong = await voterLogin({ email: 'elena@example.com', code: 'ABCD-EFGH' });
+    const wrong = await voterLogin({ email: 'eka@example.com', code: 'ABCD-EFGH' });
 
     expect(unknown.status).toBe(401);
     expect(wrong.status).toBe(401);
@@ -52,9 +52,9 @@ describe('POST /api/auth/login (voters)', () => {
   });
 
   it('refuses suspended voters with 403', async () => {
-    const { voteCode } = await createUser({ email: 'amara@example.com', status: 'suspended' });
+    const { voteCode } = await createUser({ email: 'ayu@example.com', status: 'suspended' });
 
-    const res = await voterLogin({ email: 'amara@example.com', code: voteCode });
+    const res = await voterLogin({ email: 'ayu@example.com', code: voteCode });
 
     expect(res.status).toBe(403);
     expect(res.body.error.message).toMatch(/suspended/i);
@@ -88,10 +88,10 @@ describe('POST /api/auth/admin/login', () => {
 
   it('gives the same 401 for a wrong password and a voter account', async () => {
     await createAdmin({ email: 'admin@example.com' });
-    const { voteCode } = await createUser({ email: 'sarah@example.com' });
+    const { voteCode } = await createUser({ email: 'siti@example.com' });
 
     const wrong = await adminLogin({ email: 'admin@example.com', password: 'not-it-123' });
-    const voter = await adminLogin({ email: 'sarah@example.com', password: voteCode });
+    const voter = await adminLogin({ email: 'siti@example.com', password: voteCode });
 
     expect(wrong.status).toBe(401);
     expect(voter.status).toBe(401);

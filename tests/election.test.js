@@ -14,18 +14,18 @@ beforeEach(async () => {
 const reset = (token = adminToken) => request(app).post('/api/election/reset').set(bearer(token));
 
 async function runElection() {
-  const marcus = await Candidate.create({ name: 'Marcus Chen' });
-  const sarah = await createUser();
-  const david = await createUser();
+  const mahendra = await Candidate.create({ name: 'Mahendra Wijaya' });
+  const siti = await createUser();
+  const dimas = await createUser();
   await startElection();
-  await request(app).post('/api/votes').set(bearer(sarah.token)).send({ candidateId: marcus.id });
-  await request(app).post('/api/votes').set(bearer(david.token)).send({ name: 'Jane Doe' });
-  return { marcus, sarah, david };
+  await request(app).post('/api/votes').set(bearer(siti.token)).send({ candidateId: mahendra.id });
+  await request(app).post('/api/votes').set(bearer(dimas.token)).send({ name: 'Joko Susilo' });
+  return { mahendra, siti, dimas };
 }
 
 describe('POST /api/election/reset', () => {
   it('removes every vote and write-in name, and keeps users and listed candidates', async () => {
-    const { marcus } = await runElection();
+    const { mahendra } = await runElection();
     await prepareElection();
 
     const res = await reset();
@@ -33,17 +33,17 @@ describe('POST /api/election/reset', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ votesRemoved: 2, writeInsRemoved: 1 });
     expect(await Vote.countDocuments()).toBe(0);
-    expect(await Candidate.find().distinct('name')).toEqual([marcus.name]);
+    expect(await Candidate.find().distinct('name')).toEqual([mahendra.name]);
     expect(await User.countDocuments({ role: 'voter' })).toBe(2);
   });
 
   it('lets voters vote again once the next election starts', async () => {
-    const { marcus, sarah } = await runElection();
+    const { mahendra, siti } = await runElection();
     await prepareElection();
     await reset();
     await startElection();
 
-    const vote = await request(app).post('/api/votes').set(bearer(sarah.token)).send({ candidateId: marcus.id });
+    const vote = await request(app).post('/api/votes').set(bearer(siti.token)).send({ candidateId: mahendra.id });
 
     expect(vote.status).toBe(201);
   });
