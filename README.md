@@ -125,9 +125,10 @@ Every request passes through the same layers, top to bottom:
 
 ```
 HTTP request
-  → app.js          helmet, JSON body parser (10 kB limit), one router per resource
+  → app.js          helmet, JSON body parser (10 kB limit), everything under /api
+  → routes/index.js one router per resource, each mounted with its guards
   → middleware/     requireAuth, requireRole, requireUnlocked
-  → routes/         parse the input with zod, apply the rules of that use case
+  → routes/*.js     parse the input with zod, apply the rules of that use case
   → models/         Mongoose models, data rules, public shapes
   → MongoDB
   ← errorHandler    turns anything thrown on the way into the JSON error shape
@@ -141,7 +142,7 @@ HTTP request
 
 Casting a vote (`POST /api/votes`) goes through every layer:
 
-1. `app.js` mounts the votes router behind `requireAuth` and `requireRole('voter')`. Who may call what is decided there, in one list, before any route code runs.
+1. `app.js` sets the security headers, parses the JSON body and hands everything under `/api` to `routes/index.js`, which mounts the votes router behind `requireAuth` and `requireRole('voter')`. Who may call what is decided there, in one list, before any route code runs.
 2. `requireAuth` reads the bearer token, checks its signature (`auth/token.js`) and loads the user from the database. Because the user is reloaded on every request, a suspended or deleted account is shut out at once, not when its token expires. The user is attached to `req.user`.
 3. `requireRole('voter')` turns administrators away with 403.
 4. The route parses the body with a zod schema: either `candidateId` or a write-in `name`, never both. A write-in name is trimmed, its spaces collapsed and its characters checked as part of parsing, so the code after it only ever sees clean input.
@@ -169,7 +170,8 @@ Unknown routes reach `notFound`, which passes a 404 `HttpError` to the same hand
 ## Why it is structured this way
 
 - **`app.js` builds the app, `server.js` runs it.** The tests call `createApp()` and drive it with Supertest in the same process: no port, no seeding on start, no shutdown handling. Everything with side effects lives in `server.js`, the one file the tests never load.
-- **Access rules sit in one place.** `app.js` reads like the table in [API](#api): each router is mounted with the guards it needs. A router only adds its own guard where one resource serves two audiences, such as `GET /candidates` for everyone but `POST /candidates` for administrators only.
+- **`app.js` only holds what every request needs.** It sets the security headers, parses the body and installs the 404 and error handlers. Adding an endpoint never touches it: a new resource is one file in `routes/` and one line in `routes/index.js`.
+- **Access rules sit in one place.** `routes/index.js` reads like the table in [API](#api): each router is mounted with the guards it needs. A router only adds its own guard where one resource serves two audiences, such as `GET /candidates` for everyone but `POST /candidates` for administrators only.
 - **Routes are thin, one file per resource.** A handler parses its input, applies the rules of that use case and shapes the answer. There is no separate controller or service layer: with one database and about twenty endpoints, an extra layer would mostly forward calls. If the API grew, logic shared by several routes would move into its own module first.
 - **Models own the data rules.** Each model file holds the schema, the indexes that enforce invariants (unique email, one vote per user, unique normalised candidate name), the hooks that normalise names, and the `toPublic...` function that decides what leaves the API. Password and vote-code hashes never leave the database, because no route sends a raw document.
 - **The database guards what must never break.** Checks in route code give clear, early errors, but unique indexes are what keep one vote per voter and one candidate per name true under simultaneous requests. The tests fire requests at the same moment to prove it.
@@ -189,7 +191,7 @@ src/
   auth/             password hashing, JWT helpers
   middleware/       auth and role guards, lock guard, error handler
   models/           user, candidate, vote, setting
-  routes/           one file per resource
+  routes/           one file per resource, and index.js that mounts them
 tests/              one file per resource, plus shared helpers and setup
 ```
 
