@@ -48,9 +48,9 @@ docker compose up --build
 ## Run the tests
 
 ```bash
-docker compose run --rm test                          # 160 tests: 114 API, 46 unit
-docker compose run --rm test npm run test:unit        # unit tests only
-docker compose run --rm test npm run test:coverage    # with a coverage report
+docker compose run --rm test # 160 tests: 114 API, 46 unit
+docker compose run --rm test npm run test:unit # unit tests only
+docker compose run --rm test npm run test:coverage # with a coverage report
 ```
 
 The `test` service uses its own `voting_test` database, so it never touches the app's data. `src` and `tests` are mounted into the container, so edits are picked up without a rebuild.
@@ -116,7 +116,7 @@ All routes are under `/api`. Send the token from either sign-in route as `Author
 
 ### System
 
-![System architecture: the browser talks to nginx, which serves the web app and proxies /api to the Express API; the API and the test runner use MongoDB, all inside Docker Compose](docs/architecture.png)
+![System architecture: the browser talks to nginx, which serves the web app and proxies /api to the Express API, where a request passes through middleware, routers, controllers, services, repositories and models; the API and the test runner use MongoDB, all inside Docker Compose](docs/architecture.png)
 
 ### Database
 
