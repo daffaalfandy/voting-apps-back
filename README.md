@@ -119,6 +119,53 @@ All routes are under `/api`. Send the token from either sign-in route as `Author
 
 ![Database diagram: users, candidates, votes and settings collections, with each vote linked to one user and one candidate](docs/database.png)
 
+## How the code works
+
+Every request passes through the same layers, top to bottom:
+
+```
+HTTP request
+  → app.js          helmet, JSON body parser (10 kB limit), one router per resource
+  → middleware/     requireAuth, requireRole, requireUnlocked
+  → routes/         parse the input with zod, apply the rules of that use case
+  → models/         Mongoose models, data rules, public shapes
+  → MongoDB
+  ← errorHandler    turns anything thrown on the way into the JSON error shape
+```
+
+### Startup
+
+`server.js` is the only file that touches the outside world when it loads. Importing `config.js` parses `process.env` with zod, so a missing `JWT_SECRET` or a malformed value stops the process before anything listens. The server then connects to MongoDB, seeds the database if it has no users yet (`seed.js`), and starts listening. On `SIGTERM` or `SIGINT` it stops accepting connections, closes the database connection and exits, so `docker compose down` does not cut requests off halfway.
+
+### A request, step by step
+
+Casting a vote (`POST /api/votes`) goes through every layer:
+
+1. `app.js` mounts the votes router behind `requireAuth` and `requireRole('voter')`. Who may call what is decided there, in one list, before any route code runs.
+2. `requireAuth` reads the bearer token, checks its signature (`auth/token.js`) and loads the user from the database. Because the user is reloaded on every request, a suspended or deleted account is shut out at once, not when its token expires. The user is attached to `req.user`.
+3. `requireRole('voter')` turns administrators away with 403.
+4. The route parses the body with a zod schema: either `candidateId` or a write-in `name`, never both. A write-in name is trimmed, its spaces collapsed and its characters checked as part of parsing, so the code after it only ever sees clean input.
+5. The route checks the rules that need the database: the system must be locked (423 otherwise) and the voter must not have voted yet (409).
+6. It finds the candidate by id, or calls `findOrCreateWriteIn` in `models/candidate.js`. That function upserts on the normalised name, so two voters writing in the same new name at the same moment end up with one candidate.
+7. It creates the vote. The unique index on `votes.user` is the real guarantee of one vote per voter: if two requests both passed step 5, the second insert fails with a duplicate key error, which becomes 409.
+8. It answers with `toPublicCandidate(...)`, the model's public shape, never the raw document.
+
+Reads take the same path with fewer steps. Results are not stored anywhere: `GET /results` counts votes per candidate with an aggregation on every request. Totals can never drift from the votes that exist, and deleting a user, resetting one vote or resetting the election needs no extra bookkeeping.
+
+### Errors
+
+Any layer can `throw new HttpError(status, message)` (`errors.js`). Express 5 hands errors thrown in async handlers to the error handler, so routes need no `try/catch` or `next(err)` for the common case; they only catch the duplicate key errors they want to turn into 409. `middleware/error.js` maps whatever arrives to one response shape:
+
+| Thrown | Response |
+|---|---|
+| `HttpError` | its own status and message |
+| `ZodError` | 400 `Validation failed`, with one `details` entry per invalid field |
+| Mongoose `CastError` (a malformed id) | 400 `Invalid <field>` |
+| a body that is not valid JSON | 400 `Malformed JSON body` |
+| anything else | 500 `Internal server error`; the real error is logged on the server and never sent to the client |
+
+Unknown routes reach `notFound`, which passes a 404 `HttpError` to the same handler.
+
 ## Layout
 
 ```
