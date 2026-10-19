@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { ConflictError, LockedError, NotFoundError, isDuplicateKeyError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
 import { Candidate, candidateNameSchema, findOrCreateWriteIn, toPublicCandidate } from '../models/candidate.js';
-import { getSettings } from '../models/setting.js';
 import { Vote } from '../models/vote.js';
+import * as settingsRepository from '../repositories/settings.js';
 
 const castSchema = z
   .object({
@@ -23,7 +23,7 @@ votesRouter.post('/', async (req, res) => {
   const body = castSchema.parse(req.body);
   const me = currentUser(req);
 
-  if (!(await getSettings()).locked) {
+  if (!(await settingsRepository.get()).locked) {
     throw new LockedError('Voting has not started yet. The election administrator is still preparing the election.');
   }
   if (await Vote.exists({ user: me._id })) {

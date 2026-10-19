@@ -1,9 +1,9 @@
 import { hashPassword } from './auth/password.js';
 import { hashVoteCode } from './auth/voteCode.js';
 import { Candidate } from './models/candidate.js';
-import { updateSettings } from './models/setting.js';
 import { User } from './models/user.js';
 import { Vote } from './models/vote.js';
+import * as settingsRepository from './repositories/settings.js';
 
 export const DEMO_VOTERS = [
   { name: 'Siti Rahayu', email: 'siti@example.com', code: 'STRH-4826' },
@@ -42,6 +42,6 @@ export async function seedDatabase({ admin, demo }) {
       candidate: candidates.find((c) => c.name === candidate)._id,
     })),
   );
-  await updateSettings({ locked: true });
+  await settingsRepository.update({ locked: true });
   return true;
 }

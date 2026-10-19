@@ -2,8 +2,8 @@ import { createApp } from '../src/app.js';
 import { hashPassword } from '../src/auth/password.js';
 import { signToken } from '../src/auth/token.js';
 import { generateVoteCode, hashVoteCode } from '../src/auth/voteCode.js';
-import { updateSettings } from '../src/models/setting.js';
 import { User } from '../src/models/user.js';
+import * as settingsRepository from '../src/repositories/settings.js';
 
 export const app = createApp();
 
@@ -32,6 +32,6 @@ export async function createAdmin(input = {}) {
 
 export const bearer = (token) => ({ Authorization: `Bearer ${token}` });
 
-export const startElection = () => updateSettings({ locked: true });
+export const startElection = () => settingsRepository.update({ locked: true });
 
-export const prepareElection = () => updateSettings({ locked: false });
+export const prepareElection = () => settingsRepository.update({ locked: false });
