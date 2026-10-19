@@ -166,6 +166,18 @@ Any layer can `throw new HttpError(status, message)` (`errors.js`). Express 5 ha
 
 Unknown routes reach `notFound`, which passes a 404 `HttpError` to the same handler.
 
+## Why it is structured this way
+
+- **`app.js` builds the app, `server.js` runs it.** The tests call `createApp()` and drive it with Supertest in the same process: no port, no seeding on start, no shutdown handling. Everything with side effects lives in `server.js`, the one file the tests never load.
+- **Access rules sit in one place.** `app.js` reads like the table in [API](#api): each router is mounted with the guards it needs. A router only adds its own guard where one resource serves two audiences, such as `GET /candidates` for everyone but `POST /candidates` for administrators only.
+- **Routes are thin, one file per resource.** A handler parses its input, applies the rules of that use case and shapes the answer. There is no separate controller or service layer: with one database and about twenty endpoints, an extra layer would mostly forward calls. If the API grew, logic shared by several routes would move into its own module first.
+- **Models own the data rules.** Each model file holds the schema, the indexes that enforce invariants (unique email, one vote per user, unique normalised candidate name), the hooks that normalise names, and the `toPublic...` function that decides what leaves the API. Password and vote-code hashes never leave the database, because no route sends a raw document.
+- **The database guards what must never break.** Checks in route code give clear, early errors, but unique indexes are what keep one vote per voter and one candidate per name true under simultaneous requests. The tests fire requests at the same moment to prove it.
+- **Validation at the edge.** zod schemas parse `req.body` and `req.query` at the top of each handler and hand back clean values. Code below that point never re-checks shapes, and every validation failure has the same error format.
+- **Small helpers without state.** `auth/` holds password hashing, JWT signing and vote-code generation as plain functions, reused by routes, seeding and test helpers alike.
+- **Configuration is read once.** `config.js` validates the environment at start and exports a plain object. Nothing else in `src` reads `process.env`, so a bad setting fails at boot rather than on the first request that needs it.
+- **Plain JavaScript, no build step.** The source is ES modules that Node runs directly (`node src/server.js`), and the Docker image copies `src` and starts it. What you read is what runs.
+
 ## Layout
 
 ```
