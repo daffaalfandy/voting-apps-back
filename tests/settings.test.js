@@ -1,13 +1,13 @@
 import { Types } from 'mongoose';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Candidate, type CandidateDoc } from '../src/models/candidate.js';
+import { Candidate } from '../src/models/candidate.js';
 import { Vote } from '../src/models/vote.js';
 import { app, bearer, createAdmin, createUser } from './helpers.js';
 
-let adminToken: string;
-let voter: Awaited<ReturnType<typeof createUser>>;
-let candidate: CandidateDoc;
+let adminToken;
+let voter;
+let candidate;
 
 beforeEach(async () => {
   adminToken = (await createAdmin()).token;
@@ -15,7 +15,7 @@ beforeEach(async () => {
   candidate = await Candidate.create({ name: 'Marcus Chen' });
 });
 
-const setLocked = (locked: boolean) => request(app).put('/api/settings').set(bearer(adminToken)).send({ locked });
+const setLocked = (locked) => request(app).put('/api/settings').set(bearer(adminToken)).send({ locked });
 
 describe('GET/PUT /api/settings', () => {
   it('starts unlocked', async () => {

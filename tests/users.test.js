@@ -6,13 +6,13 @@ import { User } from '../src/models/user.js';
 import { Vote } from '../src/models/vote.js';
 import { app, bearer, createAdmin, createUser, startElection } from './helpers.js';
 
-let admin: Awaited<ReturnType<typeof createAdmin>>;
+let admin;
 
 beforeEach(async () => {
   admin = await createAdmin({ name: 'Arthur Vance', email: 'admin@example.com' });
 });
 
-const castVote = (userId: Types.ObjectId) => Vote.create({ user: userId, candidate: new Types.ObjectId() });
+const castVote = (userId) => Vote.create({ user: userId, candidate: new Types.ObjectId() });
 
 describe('admin-only access', () => {
   it('refuses voters with 403', async () => {
@@ -39,8 +39,8 @@ describe('GET /api/users', () => {
     const res = await request(app).get('/api/users').set(bearer(admin.token));
 
     expect(res.status).toBe(200);
-    expect(res.body.users.map((u: { name: string }) => u.name)).toEqual(['Arthur Vance', 'David Kim', 'Sarah Jenkins']);
-    const sarahRow = res.body.users.find((u: { name: string }) => u.name === 'Sarah Jenkins');
+    expect(res.body.users.map((u) => u.name)).toEqual(['Arthur Vance', 'David Kim', 'Sarah Jenkins']);
+    const sarahRow = res.body.users.find((u) => u.name === 'Sarah Jenkins');
     expect(sarahRow.hasVoted).toBe(true);
     expect(sarahRow.votedAt).toBeTypeOf('string');
     expect(sarahRow).not.toHaveProperty('passwordHash');
@@ -53,8 +53,8 @@ describe('GET /api/users', () => {
     const byName = await request(app).get('/api/users?search=JENK').set(bearer(admin.token));
     const byEmail = await request(app).get('/api/users?search=dkim@').set(bearer(admin.token));
 
-    expect(byName.body.users.map((u: { name: string }) => u.name)).toEqual(['Sarah Jenkins']);
-    expect(byEmail.body.users.map((u: { name: string }) => u.name)).toEqual(['David Kim']);
+    expect(byName.body.users.map((u) => u.name)).toEqual(['Sarah Jenkins']);
+    expect(byEmail.body.users.map((u) => u.name)).toEqual(['David Kim']);
   });
 
   it('treats search input literally, not as a regex', async () => {
@@ -73,8 +73,8 @@ describe('GET /api/users', () => {
     const voted = await request(app).get('/api/users?voted=true').set(bearer(admin.token));
     const notVoted = await request(app).get('/api/users?voted=false').set(bearer(admin.token));
 
-    expect(voted.body.users.map((u: { name: string }) => u.name)).toEqual(['Sarah Jenkins']);
-    expect(notVoted.body.users.map((u: { name: string }) => u.name)).toEqual(['David Kim']);
+    expect(voted.body.users.map((u) => u.name)).toEqual(['Sarah Jenkins']);
+    expect(notVoted.body.users.map((u) => u.name)).toEqual(['David Kim']);
   });
 
   it('rejects an unknown voted filter value', async () => {
@@ -85,8 +85,8 @@ describe('GET /api/users', () => {
 });
 
 const VOTE_CODE = /^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/;
-const voterLogin = (email: string, code: string) => request(app).post('/api/auth/login').send({ email, code });
-const adminLogin = (email: string, password: string) => request(app).post('/api/auth/admin/login').send({ email, password });
+const voterLogin = (email, code) => request(app).post('/api/auth/login').send({ email, code });
+const adminLogin = (email, password) => request(app).post('/api/auth/admin/login').send({ email, password });
 
 describe('POST /api/users', () => {
   it('creates a voter and returns a vote code they can sign in with', async () => {
@@ -145,7 +145,7 @@ describe('POST /api/users', () => {
     const res = await request(app).post('/api/users').set(bearer(admin.token)).send(body);
 
     expect(res.status).toBe(400);
-    expect(res.body.error.details.map((d: { path: string }) => d.path)).toContain(field);
+    expect(res.body.error.details.map((d) => d.path)).toContain(field);
   });
 
   it('explains validation failures in plain language', async () => {
@@ -198,7 +198,7 @@ describe('PATCH /api/users/:id', () => {
     const res = await request(app).patch(`/api/users/${user.id}`).set(bearer(admin.token)).send({ role: 'admin' });
 
     expect(res.status).toBe(400);
-    expect((await User.findById(user._id))!.role).toBe('voter');
+    expect((await User.findById(user._id)).role).toBe('voter');
   });
 
   it('rejects an email already used by someone else with 409', async () => {

@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { User } from '../src/models/user.js';
 import { app, bearer, createAdmin, createUser } from './helpers.js';
 
-const voterLogin = (body: object) => request(app).post('/api/auth/login').send(body);
-const adminLogin = (body: object) => request(app).post('/api/auth/admin/login').send(body);
+const voterLogin = (body) => request(app).post('/api/auth/login').send(body);
+const adminLogin = (body) => request(app).post('/api/auth/admin/login').send(body);
 
 describe('POST /api/auth/login (voters)', () => {
   it('signs a voter in with email and vote code', async () => {
@@ -71,7 +71,7 @@ describe('POST /api/auth/login (voters)', () => {
     const res = await voterLogin({ email: 'not-an-email' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error.details.map((d: { path: string }) => d.path)).toEqual(['email', 'code']);
+    expect(res.body.error.details.map((d) => d.path)).toEqual(['email', 'code']);
   });
 });
 
@@ -135,7 +135,7 @@ describe('GET /api/auth/me', () => {
 
   it('rejects an expired token', async () => {
     const { user } = await createUser();
-    const expired = jwt.sign({ sub: user.id }, process.env.JWT_SECRET!, { expiresIn: -10 });
+    const expired = jwt.sign({ sub: user.id }, process.env.JWT_SECRET, { expiresIn: -10 });
 
     const res = await request(app).get('/api/auth/me').set(bearer(expired));
 

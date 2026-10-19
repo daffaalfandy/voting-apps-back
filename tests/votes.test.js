@@ -1,12 +1,12 @@
 import { Types } from 'mongoose';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Candidate, type CandidateDoc } from '../src/models/candidate.js';
+import { Candidate } from '../src/models/candidate.js';
 import { Vote } from '../src/models/vote.js';
 import { app, bearer, createAdmin, createUser, startElection } from './helpers.js';
 
-let voterToken: string;
-let marcus: CandidateDoc;
+let voterToken;
+let marcus;
 
 beforeEach(async () => {
   voterToken = (await createUser()).token;
@@ -14,7 +14,7 @@ beforeEach(async () => {
   await startElection();
 });
 
-const vote = (token: string, body: object) => request(app).post('/api/votes').set(bearer(token)).send(body);
+const vote = (token, body) => request(app).post('/api/votes').set(bearer(token)).send(body);
 
 describe('POST /api/votes', () => {
   it('records a vote for an existing candidate', async () => {
@@ -37,7 +37,7 @@ describe('POST /api/votes', () => {
     expect(res.body.vote.candidate).toMatchObject({ name: 'Jane Doe', isWriteIn: true });
 
     const list = await request(app).get('/api/candidates').set(bearer(voterToken));
-    expect(list.body.candidates.map((c: { name: string }) => c.name)).toContain('Jane Doe');
+    expect(list.body.candidates.map((c) => c.name)).toContain('Jane Doe');
   });
 
   it('counts a write-in that matches an existing name for that candidate', async () => {

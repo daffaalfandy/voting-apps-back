@@ -5,8 +5,8 @@ import { Candidate } from '../src/models/candidate.js';
 import { Vote } from '../src/models/vote.js';
 import { app, bearer, createAdmin, createUser } from './helpers.js';
 
-let adminToken: string;
-let voterToken: string;
+let adminToken;
+let voterToken;
 
 beforeEach(async () => {
   adminToken = (await createAdmin()).token;

@@ -1,16 +1,16 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { Candidate, type CandidateDoc } from '../src/models/candidate.js';
+import { Candidate } from '../src/models/candidate.js';
 import { Vote } from '../src/models/vote.js';
 import { app, bearer, createAdmin, createUser } from './helpers.js';
 
-let adminToken: string;
+let adminToken;
 
 beforeEach(async () => {
   adminToken = (await createAdmin()).token;
 });
 
-async function voteFor(candidate: CandidateDoc, status: 'active' | 'suspended' = 'active') {
+async function voteFor(candidate, status = 'active') {
   const { user } = await createUser({ status });
   await Vote.create({ user: user._id, candidate: candidate._id });
 }

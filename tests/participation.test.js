@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { Vote } from '../src/models/vote.js';
 import { app, bearer, createAdmin, createUser } from './helpers.js';
 
-let adminToken: string;
+let adminToken;
 
 beforeEach(async () => {
   adminToken = (await createAdmin()).token;

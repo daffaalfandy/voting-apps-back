@@ -26,7 +26,7 @@ describe('seedDatabase', () => {
     expect(await Candidate.countDocuments()).toBe(3);
     expect(await Vote.countDocuments()).toBe(2);
     const [sarah] = DEMO_VOTERS;
-    const login = await request(app).post('/api/auth/login').send({ email: sarah!.email, code: sarah!.code });
+    const login = await request(app).post('/api/auth/login').send({ email: sarah.email, code: sarah.code });
     expect(login.status).toBe(200);
   });
 
