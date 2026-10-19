@@ -1,8 +1,8 @@
 # Voting Application API
 
-REST API for a small voting application. Administrators manage users and candidates and watch the count; voters sign in with their email and vote code and cast one vote, either for a name already on the ballot or for a name they type in.
+REST API for a small voting application. Administrators manage users and candidates and watch the count. Voters sign in with their email and vote code and cast one vote, either for a name already on the ballot or for a name they type in.
 
-Built with Express 5, MongoDB (Mongoose), JavaScript (ES modules) and JWT. API tests use Vitest and Supertest against a real MongoDB; unit tests check the services with their repositories mocked.
+Built with Express 5, MongoDB (Mongoose), JavaScript (ES modules) and JWT. API tests use Vitest and Supertest against a real MongoDB. Unit tests check the services with their repositories mocked.
 
 The web client lives in a separate repository, [`voting-apps-front`](../voting-apps-front). The `docker-compose.yml` in this repository runs both.
 
@@ -88,23 +88,23 @@ All routes are under `/api`. Send the token from either sign-in route as `Author
 | `GET /votes/me` | voter | The voter's own vote, or `null`. |
 | `GET /results` | admin | Total votes, turnout and every candidate's count, highest first. |
 | `GET /participation` | admin | Voters who have voted and when, newest first. Never includes their choice. |
-| `GET /users?search=&voted=` | admin | Users with voting status. `search` matches name or email; `voted` is `true` or `false`. |
+| `GET /users?search=&voted=` | admin | Users with voting status. `search` matches name or email. `voted` is `true` or `false`. |
 | `POST /users` | admin | Voter: `{ name, email }` → `{ user, voteCode }`. Administrator: `{ name, email, role: "admin", password }`. |
 | `PATCH /users/:id` | admin | Any of `name`, `email`, `status`, and `password` for administrators. Roles cannot change. |
 | `POST /users/:id/vote-code` | admin | Issues a new vote code for a voter → `{ voteCode }`. The old code stops working. |
 | `DELETE /users/:id` | admin | Deletes the user and their vote. |
 | `DELETE /users/:id/vote` | admin | Clears a vote so that voter can vote again. |
 | `GET /settings` | signed in | `{ locked }`. Voters use it to know whether voting has started. |
-| `PUT /settings` | admin | `{ locked }`. Locking starts the election; unlocking closes voting and returns to preparation. |
+| `PUT /settings` | admin | `{ locked }`. Locking starts the election. Unlocking closes voting and returns to preparation. |
 | `POST /election/reset` | admin | Deletes all votes and write-in names → `{ votesRemoved, writeInsRemoved }`. 423 while the system is locked (election running). |
 | `GET /health` | anyone | Liveness check. |
 
 ## How it behaves
 
 - **One vote per voter.** `votes.user` has a unique index, so the database rejects a second vote even when two requests arrive at the same moment. A test fires five at once and expects exactly one to succeed.
-- **Write-ins join the ballot.** A typed name is trimmed, its spaces collapsed and compared case-insensitively with existing names. `"mahendra  WIJAYA"` counts for Mahendra Wijaya; a new name becomes a candidate that later voters can pick.
-- **Vote codes instead of voter passwords.** Creating a voter generates an 8-character code such as `K7QM-4XPR`, using letters and digits that cannot be confused (no 0/O or 1/I/L). The API returns it once; only a bcrypt hash is stored. If a voter loses it, an administrator issues a new one.
-- **Separate sign-in for administrators.** Administrators use a password on `/auth/admin/login`; voter credentials never work there, and the other way round. A role is fixed when the account is created.
+- **Write-ins join the ballot.** A typed name is trimmed, its spaces collapsed and compared case-insensitively with existing names. `"mahendra  WIJAYA"` counts for Mahendra Wijaya. A new name becomes a candidate that later voters can pick.
+- **Vote codes instead of voter passwords.** Creating a voter generates an 8-character code such as `K7QM-4XPR`, using letters and digits that cannot be confused (no 0/O or 1/I/L). The API returns it once. Only a bcrypt hash is stored. If a voter loses it, an administrator issues a new one.
+- **Separate sign-in for administrators.** Administrators use a password on `/auth/admin/login`. Voter credentials never work there, and the other way round. A role is fixed when the account is created.
 - **Administrators do not vote.** Turnout counts active voters only. Administrators cannot suspend or delete themselves, so the console always keeps an owner.
 - **System lock is the election switch.** Unlocked means the administrator is preparing: users and candidates can be changed, and votes get 423. Locked means the election is running: voters can vote, and users and candidates are frozen (423) so nobody can change the roster mid-election. Voters can read the lock state, so the ballot tells them when voting has not started.
 - **Election reset.** An administrator can start over: every vote and every write-in name is deleted, while voters, their vote codes and the names added by administrators stay. It only runs while the system is unlocked (423 otherwise), when voting is closed and no vote can arrive halfway through.
@@ -116,7 +116,7 @@ All routes are under `/api`. Send the token from either sign-in route as `Author
 
 ### System
 
-![System architecture: the browser talks to nginx, which serves the web app and proxies /api to the Express API, where a request passes through middleware, routers, controllers, services, repositories and models; the API and the test runner use MongoDB, all inside Docker Compose](docs/architecture.png)
+![System architecture: the browser talks to nginx, which serves the web app and proxies /api to the Express API, where a request passes through middleware, routers, controllers, services, repositories and models. The API and the test runner use MongoDB, all inside Docker Compose](docs/architecture.png)
 
 ### Database
 
@@ -161,7 +161,7 @@ Reads take the same path with fewer steps. Results are not stored anywhere: `GET
 
 ### Errors
 
-Services and middleware throw domain errors from `errors.js`. Each one names what went wrong and carries a message, but no HTTP status. Express 5 hands errors thrown in async handlers to the error handler, so controllers need no `try/catch` or `next(err)`. Only repositories ever see MongoDB's duplicate key error; they rethrow it as `DuplicateError`, which services catch where they want a specific message. `middleware/error.js` maps whatever arrives to one response shape:
+Services and middleware throw domain errors from `errors.js`. Each one names what went wrong and carries a message, but no HTTP status. Express 5 hands errors thrown in async handlers to the error handler, so controllers need no `try/catch` or `next(err)`. Only repositories ever see MongoDB's duplicate key error. They rethrow it as `DuplicateError`, which services catch where they want a specific message. `middleware/error.js` maps whatever arrives to one response shape:
 
 | Thrown | Response |
 |---|---|
@@ -174,7 +174,7 @@ Services and middleware throw domain errors from `errors.js`. Each one names wha
 | `ZodError` | 400 `Validation failed`, with one `details` entry per invalid field |
 | Mongoose `CastError` (a malformed id) | 400 `Invalid <field>` |
 | a body that is not valid JSON | 400 `Malformed JSON body` |
-| anything else | 500 `Internal server error`; the real error is logged on the server and never sent to the client |
+| anything else | 500 `Internal server error`. The real error is logged on the server and never sent to the client |
 
 Unknown routes reach `notFound`, which passes a `NotFoundError` to the same handler.
 
