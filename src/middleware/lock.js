@@ -1,8 +1,8 @@
 import { LockedError } from '../errors.js';
-import * as settingsRepository from '../repositories/settings.js';
+import * as settingsService from '../services/settings.js';
 
 export const requireUnlocked = async (_req, _res, next) => {
-  const { locked } = await settingsRepository.get();
+  const { locked } = await settingsService.get();
   if (locked) {
     throw new LockedError('The system is locked. Unlock it to change users or candidates.');
   }
