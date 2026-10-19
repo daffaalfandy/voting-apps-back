@@ -1,6 +1,5 @@
-import { verifyToken } from '../auth/token.js';
 import { AuthenticationError, ForbiddenError } from '../errors.js';
-import * as userRepository from '../repositories/users.js';
+import * as authService from '../services/auth.js';
 
 export const requireAuth = async (req, _res, next) => {
   const header = req.get('authorization');
@@ -9,22 +8,7 @@ export const requireAuth = async (req, _res, next) => {
     throw new AuthenticationError('Authentication required');
   }
 
-  let userId;
-  try {
-    userId = verifyToken(token);
-  } catch {
-    throw new AuthenticationError('Invalid or expired token');
-  }
-
-  const user = userRepository.isValidId(userId) ? await userRepository.findById(userId) : null;
-  if (!user) {
-    throw new AuthenticationError('Invalid or expired token');
-  }
-  if (user.status === 'suspended') {
-    throw new ForbiddenError('This account is suspended. Contact the election administrator.');
-  }
-
-  req.user = user;
+  req.user = await authService.authenticate(token);
   next();
 };
 
