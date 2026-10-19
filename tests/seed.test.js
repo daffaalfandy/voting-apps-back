@@ -7,7 +7,7 @@ import { Vote } from '../src/models/vote.js';
 import { DEMO_VOTERS, seedDatabase } from '../src/seed.js';
 import { app, createUser } from './helpers.js';
 
-const admin = { name: 'Arthur Vance', email: 'admin@example.com', password: 'admin12345' };
+const admin = { name: 'Agus Setiawan', email: 'admin@example.com', password: 'admin12345' };
 
 describe('seedDatabase', () => {
   it('creates the administrator on an empty database', async () => {

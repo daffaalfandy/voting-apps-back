@@ -64,7 +64,7 @@ Set these in a `.env` file next to `docker-compose.yml` (copy `.env.example`). A
 |---|---|---|
 | `JWT_SECRET` | `dev-only-secret-change-me` | Signs tokens. **Set a long random value anywhere outside your own machine.** |
 | `JWT_EXPIRES_IN` | `8h` | Token lifetime. |
-| `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | `Arthur Vance` / `admin@example.com` / `admin12345` | First administrator, created on an empty database. |
+| `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | `Agus Setiawan` / `admin@example.com` / `admin12345` | First administrator, created on an empty database. |
 | `SEED_DEMO` | `true` | Also seed the demo voters, candidates and votes. |
 | `WEB_PORT` / `API_PORT` | `3000` / `4000` | Host ports. |
 | `FRONTEND_PATH` | `../voting-apps-front` | Where the frontend repository is. |

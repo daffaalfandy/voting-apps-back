@@ -22,7 +22,7 @@ services:
       MONGO_URL: mongodb://mongo:27017/voting
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
-      ADMIN_NAME: ${ADMIN_NAME:-Arthur Vance}
+      ADMIN_NAME: ${ADMIN_NAME:-Agus Setiawan}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin12345}
       SEED_DEMO: ${SEED_DEMO:-true}
