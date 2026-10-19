@@ -5,7 +5,7 @@ import { generateVoteCode, hashVoteCode } from '../auth/voteCode.js';
 import { HttpError, isDuplicateKeyError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
 import { requireUnlocked } from '../middleware/lock.js';
-import { USER_ROLES, USER_STATUSES, User, toPublicUser, type UserDoc } from '../models/user.js';
+import { USER_ROLES, USER_STATUSES, User, toPublicUser } from '../models/user.js';
 import { Vote } from '../models/vote.js';
 import { emailSchema, nameSchema, passwordSchema } from '../schemas.js';
 
@@ -43,9 +43,9 @@ const updateSchema = z
     message: 'Provide at least one field to update',
   });
 
-const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-async function saveUser(user: UserDoc) {
+async function saveUser(user) {
   try {
     await user.save();
   } catch (err) {
@@ -56,7 +56,7 @@ async function saveUser(user: UserDoc) {
   }
 }
 
-async function findUser(id: unknown) {
+async function findUser(id) {
   const user = await User.findById(id);
   if (!user) {
     throw new HttpError(404, 'User not found');

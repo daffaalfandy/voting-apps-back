@@ -1,11 +1,11 @@
-import { Router, type Response } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
 import { verifyPassword } from '../auth/password.js';
 import { signToken } from '../auth/token.js';
 import { verifyVoteCode } from '../auth/voteCode.js';
 import { HttpError } from '../errors.js';
 import { currentUser, requireAuth } from '../middleware/auth.js';
-import { User, toPublicUser, type UserDoc } from '../models/user.js';
+import { User, toPublicUser } from '../models/user.js';
 import { findVotedAt } from '../models/vote.js';
 import { emailSchema } from '../schemas.js';
 
@@ -19,7 +19,7 @@ const adminLoginSchema = z.object({
   password: z.string({ error: 'Password is required' }).min(1, 'Password is required'),
 });
 
-async function startSession(res: Response, user: UserDoc) {
+async function startSession(res, user) {
   if (user.status === 'suspended') {
     throw new HttpError(403, 'This account is suspended. Contact the election administrator.');
   }

@@ -30,7 +30,7 @@ votesRouter.post('/', async (req, res) => {
     throw new HttpError(409, ALREADY_VOTED);
   }
 
-  const candidate = body.candidateId ? await Candidate.findById(body.candidateId) : await findOrCreateWriteIn(body.name!);
+  const candidate = body.candidateId ? await Candidate.findById(body.candidateId) : await findOrCreateWriteIn(body.name);
   if (!candidate) {
     throw new HttpError(404, 'Candidate not found');
   }
