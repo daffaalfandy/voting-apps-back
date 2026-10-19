@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { HttpError, isDuplicateKeyError } from '../errors.js';
+import { ConflictError, NotFoundError, isDuplicateKeyError } from '../errors.js';
 import { currentUser, requireRole } from '../middleware/auth.js';
 import { requireUnlocked } from '../middleware/lock.js';
 import { Candidate, candidateNameSchema, toPublicCandidate } from '../models/candidate.js';
@@ -32,7 +32,7 @@ candidatesRouter.post('/', requireRole('admin'), requireUnlocked, async (req, re
     res.status(201).json({ candidate: toPublicCandidate(candidate) });
   } catch (err) {
     if (isDuplicateKeyError(err)) {
-      throw new HttpError(409, 'A candidate with this name already exists');
+      throw new ConflictError('A candidate with this name already exists');
     }
     throw err;
   }
@@ -41,10 +41,10 @@ candidatesRouter.post('/', requireRole('admin'), requireUnlocked, async (req, re
 candidatesRouter.delete('/:id', requireRole('admin'), requireUnlocked, async (req, res) => {
   const candidate = await Candidate.findById(req.params.id);
   if (!candidate) {
-    throw new HttpError(404, 'Candidate not found');
+    throw new NotFoundError('Candidate not found');
   }
   if (await Vote.exists({ candidate: candidate._id })) {
-    throw new HttpError(409, 'This candidate already has votes and cannot be removed');
+    throw new ConflictError('This candidate already has votes and cannot be removed');
   }
 
   await candidate.deleteOne();

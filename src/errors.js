@@ -1,10 +1,22 @@
-export class HttpError extends Error {
-  constructor(status, message, details) {
+export class AppError extends Error {
+  constructor(message, details) {
     super(message);
-    this.status = status;
+    this.name = new.target.name;
     this.details = details;
   }
 }
+
+export class ValidationError extends AppError {}
+
+export class AuthenticationError extends AppError {}
+
+export class ForbiddenError extends AppError {}
+
+export class NotFoundError extends AppError {}
+
+export class ConflictError extends AppError {}
+
+export class LockedError extends AppError {}
 
 export function isDuplicateKeyError(err) {
   return typeof err === 'object' && err !== null && 'code' in err && err.code === 11000;

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { hashPassword } from '../auth/password.js';
 import { generateVoteCode, hashVoteCode } from '../auth/voteCode.js';
-import { HttpError, isDuplicateKeyError } from '../errors.js';
+import { ConflictError, NotFoundError, ValidationError, isDuplicateKeyError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
 import { requireUnlocked } from '../middleware/lock.js';
 import { USER_ROLES, USER_STATUSES, User, toPublicUser } from '../models/user.js';
@@ -50,7 +50,7 @@ async function saveUser(user) {
     await user.save();
   } catch (err) {
     if (isDuplicateKeyError(err)) {
-      throw new HttpError(409, 'A user with this email already exists');
+      throw new ConflictError('A user with this email already exists');
     }
     throw err;
   }
@@ -59,7 +59,7 @@ async function saveUser(user) {
 async function findUser(id) {
   const user = await User.findById(id);
   if (!user) {
-    throw new HttpError(404, 'User not found');
+    throw new NotFoundError('User not found');
   }
   return user;
 }
@@ -105,10 +105,10 @@ usersRouter.patch('/:id', requireUnlocked, async (req, res) => {
   const user = await findUser(req.params.id);
 
   if (user.id === currentUser(req).id && updates.status !== undefined && updates.status !== user.status) {
-    throw new HttpError(400, 'You cannot change your own status');
+    throw new ValidationError('You cannot change your own status');
   }
   if (updates.password !== undefined && user.role !== 'admin') {
-    throw new HttpError(400, VOTER_PASSWORD_MESSAGE);
+    throw new ValidationError(VOTER_PASSWORD_MESSAGE);
   }
 
   if (updates.name !== undefined) user.name = updates.name;
@@ -124,7 +124,7 @@ usersRouter.patch('/:id', requireUnlocked, async (req, res) => {
 usersRouter.post('/:id/vote-code', requireUnlocked, async (req, res) => {
   const user = await findUser(req.params.id);
   if (user.role !== 'voter') {
-    throw new HttpError(400, 'Only voters have vote codes; administrators use a password');
+    throw new ValidationError('Only voters have vote codes; administrators use a password');
   }
 
   const voteCode = generateVoteCode();
@@ -136,12 +136,12 @@ usersRouter.post('/:id/vote-code', requireUnlocked, async (req, res) => {
 
 usersRouter.delete('/:id', requireUnlocked, async (req, res) => {
   if (req.params.id === currentUser(req).id) {
-    throw new HttpError(400, 'You cannot delete your own account');
+    throw new ValidationError('You cannot delete your own account');
   }
 
   const user = await User.findByIdAndDelete(req.params.id);
   if (!user) {
-    throw new HttpError(404, 'User not found');
+    throw new NotFoundError('User not found');
   }
   await Vote.deleteMany({ user: user._id });
 
@@ -151,7 +151,7 @@ usersRouter.delete('/:id', requireUnlocked, async (req, res) => {
 usersRouter.delete('/:id/vote', requireUnlocked, async (req, res) => {
   const { deletedCount } = await Vote.deleteOne({ user: req.params.id });
   if (deletedCount === 0) {
-    throw new HttpError(404, 'This user has no vote to reset');
+    throw new NotFoundError('This user has no vote to reset');
   }
 
   res.status(204).end();

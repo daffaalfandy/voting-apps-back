@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { verifyPassword } from '../auth/password.js';
 import { signToken } from '../auth/token.js';
 import { verifyVoteCode } from '../auth/voteCode.js';
-import { HttpError } from '../errors.js';
+import { AuthenticationError, ForbiddenError } from '../errors.js';
 import { currentUser, requireAuth } from '../middleware/auth.js';
 import { User, toPublicUser } from '../models/user.js';
 import { findVotedAt } from '../models/vote.js';
@@ -21,7 +21,7 @@ const adminLoginSchema = z.object({
 
 async function startSession(res, user) {
   if (user.status === 'suspended') {
-    throw new HttpError(403, 'This account is suspended. Contact the election administrator.');
+    throw new ForbiddenError('This account is suspended. Contact the election administrator.');
   }
   res.json({ token: signToken(user.id), user: toPublicUser(user, await findVotedAt(user._id)) });
 }
@@ -34,7 +34,7 @@ authRouter.post('/login', async (req, res) => {
   const user = await User.findOne({ email, role: 'voter' });
   const codeOk = await verifyVoteCode(code, user?.voteCodeHash);
   if (!user || !codeOk) {
-    throw new HttpError(401, 'Invalid email or vote code');
+    throw new AuthenticationError('Invalid email or vote code');
   }
   await startSession(res, user);
 });
@@ -45,7 +45,7 @@ authRouter.post('/admin/login', async (req, res) => {
   const user = await User.findOne({ email, role: 'admin' });
   const passwordOk = await verifyPassword(password, user?.passwordHash);
   if (!user || !passwordOk) {
-    throw new HttpError(401, 'Invalid email or password');
+    throw new AuthenticationError('Invalid email or password');
   }
   await startSession(res, user);
 });

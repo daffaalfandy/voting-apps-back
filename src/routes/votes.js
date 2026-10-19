@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { HttpError, isDuplicateKeyError } from '../errors.js';
+import { ConflictError, LockedError, NotFoundError, isDuplicateKeyError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
 import { Candidate, candidateNameSchema, findOrCreateWriteIn, toPublicCandidate } from '../models/candidate.js';
 import { getSettings } from '../models/setting.js';
@@ -24,15 +24,15 @@ votesRouter.post('/', async (req, res) => {
   const me = currentUser(req);
 
   if (!(await getSettings()).locked) {
-    throw new HttpError(423, 'Voting has not started yet. The election administrator is still preparing the election.');
+    throw new LockedError('Voting has not started yet. The election administrator is still preparing the election.');
   }
   if (await Vote.exists({ user: me._id })) {
-    throw new HttpError(409, ALREADY_VOTED);
+    throw new ConflictError(ALREADY_VOTED);
   }
 
   const candidate = body.candidateId ? await Candidate.findById(body.candidateId) : await findOrCreateWriteIn(body.name);
   if (!candidate) {
-    throw new HttpError(404, 'Candidate not found');
+    throw new NotFoundError('Candidate not found');
   }
 
   try {
@@ -40,7 +40,7 @@ votesRouter.post('/', async (req, res) => {
     res.status(201).json({ vote: { candidate: toPublicCandidate(candidate), createdAt: vote.createdAt } });
   } catch (err) {
     if (isDuplicateKeyError(err)) {
-      throw new HttpError(409, ALREADY_VOTED);
+      throw new ConflictError(ALREADY_VOTED);
     }
     throw err;
   }

@@ -1,14 +1,24 @@
 import mongoose from 'mongoose';
 import { ZodError } from 'zod';
-import { HttpError } from '../errors.js';
+import { AuthenticationError, ConflictError, ForbiddenError, LockedError, NotFoundError, ValidationError } from '../errors.js';
+
+const STATUS_BY_ERROR = [
+  [ValidationError, 400],
+  [AuthenticationError, 401],
+  [ForbiddenError, 403],
+  [NotFoundError, 404],
+  [ConflictError, 409],
+  [LockedError, 423],
+];
 
 export const notFound = (req, _res, next) => {
-  next(new HttpError(404, `Route ${req.method} ${req.path} not found`));
+  next(new NotFoundError(`Route ${req.method} ${req.path} not found`));
 };
 
 export const errorHandler = (err, _req, res, _next) => {
-  if (err instanceof HttpError) {
-    res.status(err.status).json({ error: { message: err.message, details: err.details } });
+  const status = STATUS_BY_ERROR.find(([type]) => err instanceof type)?.[1];
+  if (status) {
+    res.status(status).json({ error: { message: err.message, details: err.details } });
     return;
   }
   if (err instanceof ZodError) {
