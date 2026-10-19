@@ -36,9 +36,9 @@ On first start the database is seeded with these accounts:
 | Voter | `siti@example.com` | vote code `STRH-4826` | Not voted |
 | Voter | `dimas@example.com` | vote code `DMPR-7395` | Not voted |
 | Voter | `eka@example.com` | vote code `EKPS-5942` | Voted for Dr. Endang Kusumawati |
-| Voter | `ayu@example.com` | vote code `AYWD-2683` | Voted for Made Wirawan |
+| Voter | `ayu@example.com` | vote code `AYWD-2683` | Voted for Mahendra Wijaya |
 
-The ballot starts with Dr. Endang Kusumawati, Made Wirawan and Sri Wahyuni, and the demo election starts locked (running), so the two voters who have not voted can vote straight away. Without demo data the system starts unlocked, ready for preparation. Seeding only runs on an empty database. To start over:
+The ballot starts with Dr. Endang Kusumawati, Mahendra Wijaya and Sri Wahyuni, and the demo election starts locked (running), so the two voters who have not voted can vote straight away. Without demo data the system starts unlocked, ready for preparation. Seeding only runs on an empty database. To start over:
 
 ```bash
 docker compose down -v   # removes the database volume
@@ -99,7 +99,7 @@ All routes are under `/api`. Send the token from either sign-in route as `Author
 ## How it behaves
 
 - **One vote per voter.** `votes.user` has a unique index, so the database rejects a second vote even when two requests arrive at the same moment. A test fires five at once and expects exactly one to succeed.
-- **Write-ins join the ballot.** A typed name is trimmed, its spaces collapsed and compared case-insensitively with existing names. `"made  WIRAWAN"` counts for Made Wirawan; a new name becomes a candidate that later voters can pick.
+- **Write-ins join the ballot.** A typed name is trimmed, its spaces collapsed and compared case-insensitively with existing names. `"mahendra  WIJAYA"` counts for Mahendra Wijaya; a new name becomes a candidate that later voters can pick.
 - **Vote codes instead of voter passwords.** Creating a voter generates an 8-character code such as `K7QM-4XPR`, using letters and digits that cannot be confused (no 0/O or 1/I/L). The API returns it once; only a bcrypt hash is stored. If a voter loses it, an administrator issues a new one.
 - **Separate sign-in for administrators.** Administrators use a password on `/auth/admin/login`; voter credentials never work there, and the other way round. A role is fixed when the account is created.
 - **Administrators do not vote.** Turnout counts active voters only. Administrators cannot suspend or delete themselves, so the console always keeps an owner.

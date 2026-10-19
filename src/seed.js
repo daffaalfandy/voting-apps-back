@@ -12,11 +12,11 @@ export const DEMO_VOTERS = [
   { name: 'Ayu Wulandari', email: 'ayu@example.com', code: 'AYWD-2683' },
 ];
 
-const DEMO_CANDIDATES = ['Dr. Endang Kusumawati', 'Made Wirawan', 'Sri Wahyuni'];
+const DEMO_CANDIDATES = ['Dr. Endang Kusumawati', 'Mahendra Wijaya', 'Sri Wahyuni'];
 
 const DEMO_VOTES = [
   { voter: 'eka@example.com', candidate: 'Dr. Endang Kusumawati' },
-  { voter: 'ayu@example.com', candidate: 'Made Wirawan' },
+  { voter: 'ayu@example.com', candidate: 'Mahendra Wijaya' },
 ];
 
 export async function seedDatabase({ admin, demo }) {
