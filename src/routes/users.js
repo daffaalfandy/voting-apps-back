@@ -2,10 +2,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { hashPassword } from '../auth/password.js';
 import { generateVoteCode, hashVoteCode } from '../auth/voteCode.js';
-import { ConflictError, NotFoundError, ValidationError, isDuplicateKeyError } from '../errors.js';
+import { ConflictError, DuplicateError, NotFoundError, ValidationError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
 import { requireUnlocked } from '../middleware/lock.js';
-import { USER_ROLES, USER_STATUSES, User, toPublicUser } from '../models/user.js';
+import { USER_ROLES, USER_STATUSES, toPublicUser } from '../models/user.js';
+import * as userRepository from '../repositories/users.js';
 import * as voteRepository from '../repositories/votes.js';
 import { emailSchema, nameSchema, passwordSchema } from '../schemas.js';
 
@@ -43,13 +44,11 @@ const updateSchema = z
     message: 'Provide at least one field to update',
   });
 
-const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-async function saveUser(user) {
+async function rejectDuplicateEmail(write) {
   try {
-    await user.save();
+    return await write();
   } catch (err) {
-    if (isDuplicateKeyError(err)) {
+    if (err instanceof DuplicateError) {
       throw new ConflictError('A user with this email already exists');
     }
     throw err;
@@ -57,7 +56,7 @@ async function saveUser(user) {
 }
 
 async function findUser(id) {
-  const user = await User.findById(id);
+  const user = await userRepository.findById(id);
   if (!user) {
     throw new NotFoundError('User not found');
   }
@@ -69,9 +68,7 @@ export const usersRouter = Router();
 usersRouter.get('/', async (req, res) => {
   const { search, voted } = listQuerySchema.parse(req.query);
 
-  const filter = search ? { $or: [{ name: new RegExp(escapeRegex(search), 'i') }, { email: new RegExp(escapeRegex(search), 'i') }] } : {};
-  let users = await User.find(filter).collation({ locale: 'en' }).sort({ name: 1 });
-
+  let users = await userRepository.list({ search });
   const votedAt = await voteRepository.votedAtByUsers(users.map((u) => u._id));
 
   if (voted === 'true') {
@@ -87,14 +84,14 @@ usersRouter.post('/', requireUnlocked, async (req, res) => {
   const body = createSchema.parse(req.body);
   const voteCode = body.role === 'voter' ? generateVoteCode() : undefined;
 
-  const user = new User({
+  const data = {
     name: body.name,
     email: body.email,
     role: body.role,
     passwordHash: body.password === undefined ? undefined : await hashPassword(body.password),
     voteCodeHash: voteCode === undefined ? undefined : await hashVoteCode(voteCode),
-  });
-  await saveUser(user);
+  };
+  const user = await rejectDuplicateEmail(() => userRepository.create(data));
 
   res.status(201).json({ user: toPublicUser(user, null), ...(voteCode && { voteCode }) });
 });
@@ -114,7 +111,7 @@ usersRouter.patch('/:id', requireUnlocked, async (req, res) => {
   if (updates.email !== undefined) user.email = updates.email;
   if (updates.status !== undefined) user.status = updates.status;
   if (updates.password !== undefined) user.passwordHash = await hashPassword(updates.password);
-  await saveUser(user);
+  await rejectDuplicateEmail(() => userRepository.save(user));
 
   res.json({ user: toPublicUser(user, await voteRepository.findVotedAt(user._id)) });
 });
@@ -127,7 +124,7 @@ usersRouter.post('/:id/vote-code', requireUnlocked, async (req, res) => {
 
   const voteCode = generateVoteCode();
   user.voteCodeHash = await hashVoteCode(voteCode);
-  await user.save();
+  await userRepository.save(user);
 
   res.json({ voteCode });
 });
@@ -137,7 +134,7 @@ usersRouter.delete('/:id', requireUnlocked, async (req, res) => {
     throw new ValidationError('You cannot delete your own account');
   }
 
-  const user = await User.findByIdAndDelete(req.params.id);
+  const user = await userRepository.deleteById(req.params.id);
   if (!user) {
     throw new NotFoundError('User not found');
   }

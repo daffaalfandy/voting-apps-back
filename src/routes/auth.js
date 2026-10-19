@@ -5,7 +5,8 @@ import { signToken } from '../auth/token.js';
 import { verifyVoteCode } from '../auth/voteCode.js';
 import { AuthenticationError, ForbiddenError } from '../errors.js';
 import { currentUser, requireAuth } from '../middleware/auth.js';
-import { User, toPublicUser } from '../models/user.js';
+import { toPublicUser } from '../models/user.js';
+import * as userRepository from '../repositories/users.js';
 import * as voteRepository from '../repositories/votes.js';
 import { emailSchema } from '../schemas.js';
 
@@ -31,7 +32,7 @@ export const authRouter = Router();
 authRouter.post('/login', async (req, res) => {
   const { email, code } = voterLoginSchema.parse(req.body);
 
-  const user = await User.findOne({ email, role: 'voter' });
+  const user = await userRepository.findByEmail(email, 'voter');
   const codeOk = await verifyVoteCode(code, user?.voteCodeHash);
   if (!user || !codeOk) {
     throw new AuthenticationError('Invalid email or vote code');
@@ -42,7 +43,7 @@ authRouter.post('/login', async (req, res) => {
 authRouter.post('/admin/login', async (req, res) => {
   const { email, password } = adminLoginSchema.parse(req.body);
 
-  const user = await User.findOne({ email, role: 'admin' });
+  const user = await userRepository.findByEmail(email, 'admin');
   const passwordOk = await verifyPassword(password, user?.passwordHash);
   if (!user || !passwordOk) {
     throw new AuthenticationError('Invalid email or password');

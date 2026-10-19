@@ -1,7 +1,6 @@
-import mongoose from 'mongoose';
 import { verifyToken } from '../auth/token.js';
 import { AuthenticationError, ForbiddenError } from '../errors.js';
-import { User } from '../models/user.js';
+import * as userRepository from '../repositories/users.js';
 
 export const requireAuth = async (req, _res, next) => {
   const header = req.get('authorization');
@@ -17,7 +16,7 @@ export const requireAuth = async (req, _res, next) => {
     throw new AuthenticationError('Invalid or expired token');
   }
 
-  const user = mongoose.isValidObjectId(userId) ? await User.findById(userId) : null;
+  const user = userRepository.isValidId(userId) ? await userRepository.findById(userId) : null;
   if (!user) {
     throw new AuthenticationError('Invalid or expired token');
   }

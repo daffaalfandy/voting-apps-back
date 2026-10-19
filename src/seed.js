@@ -1,8 +1,8 @@
 import { hashPassword } from './auth/password.js';
 import { hashVoteCode } from './auth/voteCode.js';
-import { User } from './models/user.js';
 import * as candidateRepository from './repositories/candidates.js';
 import * as settingsRepository from './repositories/settings.js';
+import * as userRepository from './repositories/users.js';
 import * as voteRepository from './repositories/votes.js';
 
 export const DEMO_VOTERS = [
@@ -20,16 +20,16 @@ const DEMO_VOTES = [
 ];
 
 export async function seedDatabase({ admin, demo }) {
-  if (await User.exists({})) {
+  if (await userRepository.exists()) {
     return false;
   }
 
-  await User.create({ name: admin.name, email: admin.email, role: 'admin', passwordHash: await hashPassword(admin.password) });
+  await userRepository.create({ name: admin.name, email: admin.email, role: 'admin', passwordHash: await hashPassword(admin.password) });
   if (!demo) {
     return true;
   }
 
-  const voters = await User.insertMany(
+  const voters = await userRepository.insertMany(
     await Promise.all(
       DEMO_VOTERS.map(async ({ name, email, code }) => ({ name, email, role: 'voter', voteCodeHash: await hashVoteCode(code) })),
     ),
