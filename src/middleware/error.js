@@ -1,13 +1,12 @@
-import type { ErrorRequestHandler, RequestHandler } from 'express';
 import mongoose from 'mongoose';
 import { ZodError } from 'zod';
 import { HttpError } from '../errors.js';
 
-export const notFound: RequestHandler = (req, _res, next) => {
+export const notFound = (req, _res, next) => {
   next(new HttpError(404, `Route ${req.method} ${req.path} not found`));
 };
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler = (err, _req, res, _next) => {
   if (err instanceof HttpError) {
     res.status(err.status).json({ error: { message: err.message, details: err.details } });
     return;
