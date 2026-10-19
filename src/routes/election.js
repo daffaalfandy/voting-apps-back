@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { LockedError } from '../errors.js';
-import { Candidate } from '../models/candidate.js';
 import { Vote } from '../models/vote.js';
+import * as candidateRepository from '../repositories/candidates.js';
 import * as settingsRepository from '../repositories/settings.js';
 
 export const electionRouter = Router();
@@ -12,7 +12,7 @@ electionRouter.post('/reset', async (_req, res) => {
   }
 
   const votes = await Vote.deleteMany({});
-  const writeIns = await Candidate.deleteMany({ isWriteIn: true });
+  const writeInsRemoved = await candidateRepository.deleteWriteIns();
 
-  res.json({ votesRemoved: votes.deletedCount, writeInsRemoved: writeIns.deletedCount });
+  res.json({ votesRemoved: votes.deletedCount, writeInsRemoved });
 });

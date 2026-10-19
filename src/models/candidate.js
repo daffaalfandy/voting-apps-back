@@ -1,6 +1,5 @@
 import { Schema, model } from 'mongoose';
 import { z } from 'zod';
-import { isDuplicateKeyError } from '../errors.js';
 
 export const normalizeName = (name) => name.normalize('NFKC').trim().replace(/\s+/g, ' ');
 
@@ -33,26 +32,6 @@ candidateSchema.pre('validate', function () {
 });
 
 export const Candidate = model('Candidate', candidateSchema);
-
-export async function findOrCreateWriteIn(name) {
-  const displayName = normalizeName(name);
-  const normalizedName = displayName.toLowerCase();
-  const upsert = () =>
-    Candidate.findOneAndUpdate(
-      { normalizedName },
-      { $setOnInsert: { name: displayName, normalizedName, isWriteIn: true } },
-      { upsert: true, returnDocument: 'after' },
-    ).orFail();
-
-  try {
-    return await upsert();
-  } catch (err) {
-    if (isDuplicateKeyError(err)) {
-      return upsert();
-    }
-    throw err;
-  }
-}
 
 export function toPublicCandidate(candidate) {
   return { id: candidate.id, name: candidate.name, isWriteIn: candidate.isWriteIn };

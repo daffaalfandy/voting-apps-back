@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import { Candidate, toPublicCandidate } from '../models/candidate.js';
+import { toPublicCandidate } from '../models/candidate.js';
 import { User } from '../models/user.js';
 import { Vote, countVotesByCandidate } from '../models/vote.js';
+import * as candidateRepository from '../repositories/candidates.js';
 
 export const resultsRouter = Router();
 
 resultsRouter.get('/', async (_req, res) => {
   const [candidates, counts, activeVoters] = await Promise.all([
-    Candidate.find(),
+    candidateRepository.list(),
     countVotesByCandidate(),
     User.find({ role: 'voter', status: 'active' }).select('_id').lean(),
   ]);

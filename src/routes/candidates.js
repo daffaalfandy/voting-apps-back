@@ -1,17 +1,18 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { ConflictError, NotFoundError, isDuplicateKeyError } from '../errors.js';
+import { ConflictError, DuplicateError, NotFoundError } from '../errors.js';
 import { currentUser, requireRole } from '../middleware/auth.js';
 import { requireUnlocked } from '../middleware/lock.js';
-import { Candidate, candidateNameSchema, toPublicCandidate } from '../models/candidate.js';
+import { candidateNameSchema, toPublicCandidate } from '../models/candidate.js';
 import { Vote, countVotesByCandidate } from '../models/vote.js';
+import * as candidateRepository from '../repositories/candidates.js';
 
 const createSchema = z.object({ name: candidateNameSchema });
 
 export const candidatesRouter = Router();
 
 candidatesRouter.get('/', async (req, res) => {
-  const candidates = await Candidate.find().collation({ locale: 'en' }).sort({ name: 1 });
+  const candidates = await candidateRepository.list();
 
   if (currentUser(req).role !== 'admin') {
     res.json({ candidates: candidates.map(toPublicCandidate) });
@@ -28,10 +29,10 @@ candidatesRouter.post('/', requireRole('admin'), requireUnlocked, async (req, re
   const { name } = createSchema.parse(req.body);
 
   try {
-    const candidate = await Candidate.create({ name });
+    const candidate = await candidateRepository.create(name);
     res.status(201).json({ candidate: toPublicCandidate(candidate) });
   } catch (err) {
-    if (isDuplicateKeyError(err)) {
+    if (err instanceof DuplicateError) {
       throw new ConflictError('A candidate with this name already exists');
     }
     throw err;
@@ -39,7 +40,7 @@ candidatesRouter.post('/', requireRole('admin'), requireUnlocked, async (req, re
 });
 
 candidatesRouter.delete('/:id', requireRole('admin'), requireUnlocked, async (req, res) => {
-  const candidate = await Candidate.findById(req.params.id);
+  const candidate = await candidateRepository.findById(req.params.id);
   if (!candidate) {
     throw new NotFoundError('Candidate not found');
   }
@@ -47,6 +48,6 @@ candidatesRouter.delete('/:id', requireRole('admin'), requireUnlocked, async (re
     throw new ConflictError('This candidate already has votes and cannot be removed');
   }
 
-  await candidate.deleteOne();
+  await candidateRepository.remove(candidate);
   res.status(204).end();
 });

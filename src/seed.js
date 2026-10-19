@@ -1,8 +1,8 @@
 import { hashPassword } from './auth/password.js';
 import { hashVoteCode } from './auth/voteCode.js';
-import { Candidate } from './models/candidate.js';
 import { User } from './models/user.js';
 import { Vote } from './models/vote.js';
+import * as candidateRepository from './repositories/candidates.js';
 import * as settingsRepository from './repositories/settings.js';
 
 export const DEMO_VOTERS = [
@@ -34,7 +34,7 @@ export async function seedDatabase({ admin, demo }) {
       DEMO_VOTERS.map(async ({ name, email, code }) => ({ name, email, role: 'voter', voteCodeHash: await hashVoteCode(code) })),
     ),
   );
-  const candidates = await Candidate.create(DEMO_CANDIDATES.map((name) => ({ name })));
+  const candidates = await candidateRepository.createMany(DEMO_CANDIDATES);
 
   await Vote.insertMany(
     DEMO_VOTES.map(({ voter, candidate }) => ({
