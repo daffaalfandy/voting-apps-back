@@ -32,7 +32,3 @@ candidateSchema.pre('validate', function () {
 });
 
 export const Candidate = model('Candidate', candidateSchema);
-
-export function toPublicCandidate(candidate) {
-  return { id: candidate.id, name: candidate.name, isWriteIn: candidate.isWriteIn };
-}

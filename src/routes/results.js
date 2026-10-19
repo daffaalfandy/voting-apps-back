@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { toPublicCandidate } from '../models/candidate.js';
+import { toPublicCandidate } from '../controllers/presenters.js';
 import * as candidateRepository from '../repositories/candidates.js';
 import * as userRepository from '../repositories/users.js';
 import * as voteRepository from '../repositories/votes.js';

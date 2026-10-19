@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { toPublicCandidate } from '../controllers/presenters.js';
 import { ConflictError, DuplicateError, LockedError, NotFoundError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
-import { candidateNameSchema, toPublicCandidate } from '../models/candidate.js';
+import { candidateNameSchema } from '../models/candidate.js';
 import * as candidateRepository from '../repositories/candidates.js';
 import * as settingsRepository from '../repositories/settings.js';
 import * as voteRepository from '../repositories/votes.js';

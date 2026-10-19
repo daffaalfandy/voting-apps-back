@@ -25,16 +25,3 @@ userSchema.pre('validate', function () {
 });
 
 export const User = model('User', userSchema);
-
-export function toPublicUser(user, votedAt) {
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    status: user.status,
-    hasVoted: votedAt !== null,
-    votedAt,
-    createdAt: user.createdAt,
-  };
-}
