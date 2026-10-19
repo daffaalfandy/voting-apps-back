@@ -2,7 +2,7 @@
 
 REST API for a small voting application. Administrators manage users and candidates and watch the count; voters sign in with their email and vote code and cast one vote, either for a name already on the ballot or for a name they type in.
 
-Built with Express 5, MongoDB (Mongoose), TypeScript and JWT. Tests use Vitest and Supertest against a real MongoDB.
+Built with Express 5, MongoDB (Mongoose), JavaScript (ES modules) and JWT. Tests use Vitest and Supertest against a real MongoDB.
 
 The web client lives in a separate repository, [`voting-apps-front`](../voting-apps-front). The `docker-compose.yml` in this repository runs both.
 
@@ -123,10 +123,10 @@ All routes are under `/api`. Send the token from either sign-in route as `Author
 
 ```
 src/
-  app.ts            Express app (no listen), used by tests and the server
-  server.ts         connects to MongoDB, seeds, listens
-  config.ts         environment variables, validated with zod
-  seed.ts           first-run data
+  app.js            Express app (no listen), used by tests and the server
+  server.js         connects to MongoDB, seeds, listens
+  config.js         environment variables, validated with zod
+  seed.js           first-run data
   auth/             password hashing, JWT helpers
   middleware/       auth and role guards, lock guard, error handler
   models/           user, candidate, vote, setting
