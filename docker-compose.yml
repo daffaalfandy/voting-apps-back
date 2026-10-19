@@ -59,7 +59,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./tests:/app/tests
-      - ./vitest.config.ts:/app/vitest.config.ts
+      - ./vitest.config.js:/app/vitest.config.js
     command: ["npm", "test"]
     depends_on:
       mongo:

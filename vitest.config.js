@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    setupFiles: ['./tests/setup.ts'],
+    setupFiles: ['./tests/setup.js'],
     fileParallelism: false,
     env: {
       NODE_ENV: 'test',
@@ -12,8 +12,8 @@ export default defineConfig({
       MONGO_URL: process.env.MONGO_URL ?? 'mongodb://localhost:27017/voting_test',
     },
     coverage: {
-      include: ['src/**/*.ts'],
-      exclude: ['src/server.ts'],
+      include: ['src/**/*.js'],
+      exclude: ['src/server.js'],
     },
   },
 });
