@@ -1,18 +1,18 @@
 import { Router } from 'express';
 import { toPublicCandidate } from '../models/candidate.js';
 import { User } from '../models/user.js';
-import { Vote, countVotesByCandidate } from '../models/vote.js';
 import * as candidateRepository from '../repositories/candidates.js';
+import * as voteRepository from '../repositories/votes.js';
 
 export const resultsRouter = Router();
 
 resultsRouter.get('/', async (_req, res) => {
   const [candidates, counts, activeVoters] = await Promise.all([
     candidateRepository.list(),
-    countVotesByCandidate(),
+    voteRepository.countByCandidate(),
     User.find({ role: 'voter', status: 'active' }).select('_id').lean(),
   ]);
-  const voted = await Vote.countDocuments({ user: { $in: activeVoters.map((voter) => voter._id) } });
+  const voted = await voteRepository.countByUsers(activeVoters.map((voter) => voter._id));
 
   const standings = candidates
     .map((candidate) => ({ ...toPublicCandidate(candidate), votes: counts.get(candidate.id) ?? 0 }))

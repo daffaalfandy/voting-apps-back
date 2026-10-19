@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { ConflictError, LockedError, NotFoundError, isDuplicateKeyError } from '../errors.js';
+import { ConflictError, DuplicateError, LockedError, NotFoundError } from '../errors.js';
 import { currentUser } from '../middleware/auth.js';
 import { candidateNameSchema, toPublicCandidate } from '../models/candidate.js';
-import { Vote } from '../models/vote.js';
 import * as candidateRepository from '../repositories/candidates.js';
 import * as settingsRepository from '../repositories/settings.js';
+import * as voteRepository from '../repositories/votes.js';
 
 const castSchema = z
   .object({
@@ -27,7 +27,7 @@ votesRouter.post('/', async (req, res) => {
   if (!(await settingsRepository.get()).locked) {
     throw new LockedError('Voting has not started yet. The election administrator is still preparing the election.');
   }
-  if (await Vote.exists({ user: me._id })) {
+  if (await voteRepository.existsForUser(me._id)) {
     throw new ConflictError(ALREADY_VOTED);
   }
 
@@ -37,10 +37,10 @@ votesRouter.post('/', async (req, res) => {
   }
 
   try {
-    const vote = await Vote.create({ user: me._id, candidate: candidate._id });
+    const vote = await voteRepository.create({ user: me._id, candidate: candidate._id });
     res.status(201).json({ vote: { candidate: toPublicCandidate(candidate), createdAt: vote.createdAt } });
   } catch (err) {
-    if (isDuplicateKeyError(err)) {
+    if (err instanceof DuplicateError) {
       throw new ConflictError(ALREADY_VOTED);
     }
     throw err;
@@ -48,7 +48,7 @@ votesRouter.post('/', async (req, res) => {
 });
 
 votesRouter.get('/me', async (req, res) => {
-  const vote = await Vote.findOne({ user: currentUser(req)._id });
+  const vote = await voteRepository.findByUser(currentUser(req)._id);
   const candidate = vote ? await candidateRepository.findById(vote.candidate) : null;
 
   res.json({

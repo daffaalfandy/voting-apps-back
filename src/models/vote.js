@@ -9,13 +9,3 @@ const voteSchema = new Schema(
 );
 
 export const Vote = model('Vote', voteSchema);
-
-export async function findVotedAt(userId) {
-  const vote = await Vote.findOne({ user: userId }).select('createdAt').lean();
-  return vote?.createdAt ?? null;
-}
-
-export async function countVotesByCandidate() {
-  const rows = await Vote.aggregate([{ $group: { _id: '$candidate', count: { $sum: 1 } } }]);
-  return new Map(rows.map((row) => [String(row._id), row.count]));
-}

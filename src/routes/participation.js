@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { User } from '../models/user.js';
-import { Vote } from '../models/vote.js';
+import * as voteRepository from '../repositories/votes.js';
 
 export const participationRouter = Router();
 
 participationRouter.get('/', async (_req, res) => {
-  const votes = await Vote.find().sort({ createdAt: -1 }).select('user createdAt').lean();
+  const votes = await voteRepository.listRecent();
   const users = await User.find({ _id: { $in: votes.map((vote) => vote.user) } });
   const usersById = new Map(users.map((user) => [user.id, user]));
 

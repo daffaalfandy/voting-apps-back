@@ -4,8 +4,8 @@ import { ConflictError, DuplicateError, NotFoundError } from '../errors.js';
 import { currentUser, requireRole } from '../middleware/auth.js';
 import { requireUnlocked } from '../middleware/lock.js';
 import { candidateNameSchema, toPublicCandidate } from '../models/candidate.js';
-import { Vote, countVotesByCandidate } from '../models/vote.js';
 import * as candidateRepository from '../repositories/candidates.js';
+import * as voteRepository from '../repositories/votes.js';
 
 const createSchema = z.object({ name: candidateNameSchema });
 
@@ -19,7 +19,7 @@ candidatesRouter.get('/', async (req, res) => {
     return;
   }
 
-  const counts = await countVotesByCandidate();
+  const counts = await voteRepository.countByCandidate();
   res.json({
     candidates: candidates.map((c) => ({ ...toPublicCandidate(c), voteCount: counts.get(c.id) ?? 0 })),
   });
@@ -44,7 +44,7 @@ candidatesRouter.delete('/:id', requireRole('admin'), requireUnlocked, async (re
   if (!candidate) {
     throw new NotFoundError('Candidate not found');
   }
-  if (await Vote.exists({ candidate: candidate._id })) {
+  if (await voteRepository.existsForCandidate(candidate._id)) {
     throw new ConflictError('This candidate already has votes and cannot be removed');
   }
 

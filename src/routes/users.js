@@ -6,7 +6,7 @@ import { ConflictError, NotFoundError, ValidationError, isDuplicateKeyError } fr
 import { currentUser } from '../middleware/auth.js';
 import { requireUnlocked } from '../middleware/lock.js';
 import { USER_ROLES, USER_STATUSES, User, toPublicUser } from '../models/user.js';
-import { Vote } from '../models/vote.js';
+import * as voteRepository from '../repositories/votes.js';
 import { emailSchema, nameSchema, passwordSchema } from '../schemas.js';
 
 const VOTER_PASSWORD_MESSAGE = 'Voters sign in with a vote code, not a password';
@@ -72,8 +72,7 @@ usersRouter.get('/', async (req, res) => {
   const filter = search ? { $or: [{ name: new RegExp(escapeRegex(search), 'i') }, { email: new RegExp(escapeRegex(search), 'i') }] } : {};
   let users = await User.find(filter).collation({ locale: 'en' }).sort({ name: 1 });
 
-  const votes = await Vote.find({ user: { $in: users.map((u) => u._id) } }).select('user createdAt').lean();
-  const votedAt = new Map(votes.map((vote) => [String(vote.user), vote.createdAt]));
+  const votedAt = await voteRepository.votedAtByUsers(users.map((u) => u._id));
 
   if (voted === 'true') {
     users = users.filter((u) => votedAt.has(u.id));
@@ -117,8 +116,7 @@ usersRouter.patch('/:id', requireUnlocked, async (req, res) => {
   if (updates.password !== undefined) user.passwordHash = await hashPassword(updates.password);
   await saveUser(user);
 
-  const vote = await Vote.findOne({ user: user._id }).select('createdAt').lean();
-  res.json({ user: toPublicUser(user, vote?.createdAt ?? null) });
+  res.json({ user: toPublicUser(user, await voteRepository.findVotedAt(user._id)) });
 });
 
 usersRouter.post('/:id/vote-code', requireUnlocked, async (req, res) => {
@@ -143,14 +141,14 @@ usersRouter.delete('/:id', requireUnlocked, async (req, res) => {
   if (!user) {
     throw new NotFoundError('User not found');
   }
-  await Vote.deleteMany({ user: user._id });
+  await voteRepository.deleteByUser(user._id);
 
   res.status(204).end();
 });
 
 usersRouter.delete('/:id/vote', requireUnlocked, async (req, res) => {
-  const { deletedCount } = await Vote.deleteOne({ user: req.params.id });
-  if (deletedCount === 0) {
+  const deleted = await voteRepository.deleteByUser(req.params.id);
+  if (deleted === 0) {
     throw new NotFoundError('This user has no vote to reset');
   }
 

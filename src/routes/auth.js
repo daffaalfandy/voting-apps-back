@@ -6,7 +6,7 @@ import { verifyVoteCode } from '../auth/voteCode.js';
 import { AuthenticationError, ForbiddenError } from '../errors.js';
 import { currentUser, requireAuth } from '../middleware/auth.js';
 import { User, toPublicUser } from '../models/user.js';
-import { findVotedAt } from '../models/vote.js';
+import * as voteRepository from '../repositories/votes.js';
 import { emailSchema } from '../schemas.js';
 
 const voterLoginSchema = z.object({
@@ -23,7 +23,7 @@ async function startSession(res, user) {
   if (user.status === 'suspended') {
     throw new ForbiddenError('This account is suspended. Contact the election administrator.');
   }
-  res.json({ token: signToken(user.id), user: toPublicUser(user, await findVotedAt(user._id)) });
+  res.json({ token: signToken(user.id), user: toPublicUser(user, await voteRepository.findVotedAt(user._id)) });
 }
 
 export const authRouter = Router();
@@ -52,5 +52,5 @@ authRouter.post('/admin/login', async (req, res) => {
 
 authRouter.get('/me', requireAuth, async (req, res) => {
   const user = currentUser(req);
-  res.json({ user: toPublicUser(user, await findVotedAt(user._id)) });
+  res.json({ user: toPublicUser(user, await voteRepository.findVotedAt(user._id)) });
 });
