@@ -19,12 +19,7 @@ const DEMO_VOTES = [
   { voter: 'amara@example.com', candidate: 'Marcus Chen' },
 ];
 
-interface SeedOptions {
-  admin: { name: string; email: string; password: string };
-  demo: boolean;
-}
-
-export async function seedDatabase({ admin, demo }: SeedOptions): Promise<boolean> {
+export async function seedDatabase({ admin, demo }) {
   if (await User.exists({})) {
     return false;
   }
@@ -43,8 +38,8 @@ export async function seedDatabase({ admin, demo }: SeedOptions): Promise<boolea
 
   await Vote.insertMany(
     DEMO_VOTES.map(({ voter, candidate }) => ({
-      user: voters.find((v) => v.email === voter)!._id,
-      candidate: candidates.find((c) => c.name === candidate)!._id,
+      user: voters.find((v) => v.email === voter)._id,
+      candidate: candidates.find((c) => c.name === candidate)._id,
     })),
   );
   await updateSettings({ locked: true });
