@@ -2,7 +2,7 @@
 
 REST API for a small voting application. Administrators manage users and candidates and watch the count; voters sign in with their email and vote code and cast one vote, either for a name already on the ballot or for a name they type in.
 
-Built with Express 5, MongoDB (Mongoose), JavaScript (ES modules) and JWT. Tests use Vitest and Supertest against a real MongoDB.
+Built with Express 5, MongoDB (Mongoose), JavaScript (ES modules) and JWT. API tests use Vitest and Supertest against a real MongoDB; unit tests check the services with their repositories mocked.
 
 The web client lives in a separate repository, [`voting-apps-front`](../voting-apps-front). The `docker-compose.yml` in this repository runs both.
 
@@ -48,13 +48,16 @@ docker compose up --build
 ## Run the tests
 
 ```bash
-docker compose run --rm test                          # 114 tests
+docker compose run --rm test                          # 160 tests: 114 API, 46 unit
+docker compose run --rm test npm run test:unit        # unit tests only
 docker compose run --rm test npm run test:coverage    # with a coverage report
 ```
 
 The `test` service uses its own `voting_test` database, so it never touches the app's data. `src` and `tests` are mounted into the container, so edits are picked up without a rebuild.
 
-The suite was written test first: the git history shows each failing test file committed before the code that makes it pass.
+There are two kinds of test. The API tests (`tests/*.test.js`) drive the whole app over HTTP and check status codes, response bodies and what ends up in the database. The unit tests (`tests/unit/`) call each service directly with its repositories replaced by mocks, so they need no database: `npm run test:unit` also works on a machine without MongoDB.
+
+The API suite was written test first: the git history shows each failing test file committed before the code that makes it pass.
 
 ## Configuration
 
@@ -125,13 +128,16 @@ Every request passes through the same layers, top to bottom:
 
 ```
 HTTP request
-  → app.js          helmet, JSON body parser (10 kB limit), everything under /api
-  → routes/index.js one router per resource, each mounted with its guards
-  → middleware/     requireAuth, requireRole, requireUnlocked
-  → routes/*.js     parse the input with zod, apply the rules of that use case
-  → models/         Mongoose models, data rules, public shapes
+  → app.js           helmet, JSON body parser (10 kB limit), everything under /api
+  → routes/index.js  one router per resource, each mounted with its guards
+  → middleware/      requireAuth, requireRole, requireUnlocked
+  → routes/*.js      the paths of one resource, each pointing at a controller
+  → controllers/     parse the input with zod, call a service, shape the response
+  → services/        the rules of each use case, reported as domain errors
+  → repositories/    every database query, nothing else
+  → models/          Mongoose schemas, indexes and hooks
   → MongoDB
-  ← errorHandler    turns anything thrown on the way into the JSON error shape
+  ← errorHandler     turns anything thrown on the way into the JSON error shape
 ```
 
 ### Startup
@@ -142,41 +148,49 @@ HTTP request
 
 Casting a vote (`POST /api/votes`) goes through every layer:
 
-1. `app.js` sets the security headers, parses the JSON body and hands everything under `/api` to `routes/index.js`, which mounts the votes router behind `requireAuth` and `requireRole('voter')`. Who may call what is decided there, in one list, before any route code runs.
-2. `requireAuth` reads the bearer token, checks its signature (`auth/token.js`) and loads the user from the database. Because the user is reloaded on every request, a suspended or deleted account is shut out at once, not when its token expires. The user is attached to `req.user`.
+1. `app.js` sets the security headers, parses the JSON body and hands everything under `/api` to `routes/index.js`, which mounts the votes router behind `requireAuth` and `requireRole('voter')`. Who may call what is decided there, in one list, before any controller runs.
+2. `requireAuth` reads the bearer token and asks `authService.authenticate` who it belongs to. The service checks the signature (`auth/token.js`) and loads the user through `userRepository`. Because the user is reloaded on every request, a suspended or deleted account is shut out at once, not when its token expires. The user is attached to `req.user`.
 3. `requireRole('voter')` turns administrators away with 403.
-4. The route parses the body with a zod schema: either `candidateId` or a write-in `name`, never both. A write-in name is trimmed, its spaces collapsed and its characters checked as part of parsing, so the code after it only ever sees clean input.
-5. The route checks the rules that need the database: the system must be locked (423 otherwise) and the voter must not have voted yet (409).
-6. It finds the candidate by id, or calls `findOrCreateWriteIn` in `models/candidate.js`. That function upserts on the normalised name, so two voters writing in the same new name at the same moment end up with one candidate.
-7. It creates the vote. The unique index on `votes.user` is the real guarantee of one vote per voter: if two requests both passed step 5, the second insert fails with a duplicate key error, which becomes 409.
-8. It answers with `toPublicCandidate(...)`, the model's public shape, never the raw document.
+4. `routes/votes.js` sends the request to `votesController.cast`, which parses the body with a zod schema: either `candidateId` or a write-in `name`, never both. A write-in name is trimmed, its spaces collapsed and its characters checked as part of parsing, so the service only ever sees clean input.
+5. `voteService.cast(voter, input)` checks the rules that need the database: the system must be locked (`LockedError`, 423) and the voter must not have voted yet (`ConflictError`, 409).
+6. It finds the candidate by id, or calls `candidateRepository.findOrCreateWriteIn`. That function upserts on the normalised name, so two voters writing in the same new name at the same moment end up with one candidate.
+7. It creates the vote through `voteRepository.create`. The unique index on `votes.user` is the real guarantee of one vote per voter: if two requests both passed step 5, the second insert fails with MongoDB's duplicate key error. The repository rethrows it as a `DuplicateError`, and the service turns that into the same `ConflictError` as step 5.
+8. The controller answers 201 with `toPublicVote(...)` from `controllers/presenters.js`, never the raw document.
 
 Reads take the same path with fewer steps. Results are not stored anywhere: `GET /results` counts votes per candidate with an aggregation on every request. Totals can never drift from the votes that exist, and deleting a user, resetting one vote or resetting the election needs no extra bookkeeping.
 
 ### Errors
 
-Any layer can `throw new HttpError(status, message)` (`errors.js`). Express 5 hands errors thrown in async handlers to the error handler, so routes need no `try/catch` or `next(err)` for the common case; they only catch the duplicate key errors they want to turn into 409. `middleware/error.js` maps whatever arrives to one response shape:
+Services and middleware throw domain errors from `errors.js`. Each one names what went wrong and carries a message, but no HTTP status. Express 5 hands errors thrown in async handlers to the error handler, so controllers need no `try/catch` or `next(err)`. Only repositories ever see MongoDB's duplicate key error; they rethrow it as `DuplicateError`, which services catch where they want a specific message. `middleware/error.js` maps whatever arrives to one response shape:
 
 | Thrown | Response |
 |---|---|
-| `HttpError` | its own status and message |
+| `ValidationError` | 400 with its message |
+| `AuthenticationError` | 401 with its message |
+| `ForbiddenError` | 403 with its message |
+| `NotFoundError` | 404 with its message |
+| `ConflictError`, including `DuplicateError` | 409 with its message |
+| `LockedError` | 423 with its message |
 | `ZodError` | 400 `Validation failed`, with one `details` entry per invalid field |
 | Mongoose `CastError` (a malformed id) | 400 `Invalid <field>` |
 | a body that is not valid JSON | 400 `Malformed JSON body` |
 | anything else | 500 `Internal server error`; the real error is logged on the server and never sent to the client |
 
-Unknown routes reach `notFound`, which passes a 404 `HttpError` to the same handler.
+Unknown routes reach `notFound`, which passes a `NotFoundError` to the same handler.
 
 ## Why it is structured this way
 
 - **`app.js` builds the app, `server.js` runs it.** The tests call `createApp()` and drive it with Supertest in the same process: no port, no seeding on start, no shutdown handling. Everything with side effects lives in `server.js`, the one file the tests never load.
-- **`app.js` only holds what every request needs.** It sets the security headers, parses the body and installs the 404 and error handlers. Adding an endpoint never touches it: a new resource is one file in `routes/` and one line in `routes/index.js`.
+- **`app.js` only holds what every request needs.** It sets the security headers, parses the body and installs the 404 and error handlers. Adding an endpoint never touches it: a new resource is a route, a controller and a service file, plus one line in `routes/index.js`.
 - **Access rules sit in one place.** `routes/index.js` reads like the table in [API](#api): each router is mounted with the guards it needs. A router only adds its own guard where one resource serves two audiences, such as `GET /candidates` for everyone but `POST /candidates` for administrators only.
-- **Routes are thin, one file per resource.** A handler parses its input, applies the rules of that use case and shapes the answer. There is no separate controller or service layer: with one database and about twenty endpoints, an extra layer would mostly forward calls. If the API grew, logic shared by several routes would move into its own module first.
-- **Models own the data rules.** Each model file holds the schema, the indexes that enforce invariants (unique email, one vote per user, unique normalised candidate name), the hooks that normalise names, and the `toPublic...` function that decides what leaves the API. Password and vote-code hashes never leave the database, because no route sends a raw document.
-- **The database guards what must never break.** Checks in route code give clear, early errors, but unique indexes are what keep one vote per voter and one candidate per name true under simultaneous requests. The tests fire requests at the same moment to prove it.
-- **Validation at the edge.** zod schemas parse `req.body` and `req.query` at the top of each handler and hand back clean values. Code below that point never re-checks shapes, and every validation failure has the same error format.
-- **Small helpers without state.** `auth/` holds password hashing, JWT signing and vote-code generation as plain functions, reused by routes, seeding and test helpers alike.
+- **Each layer has one job.** Routes map paths to controllers. Controllers translate HTTP into a function call and back: they parse `req`, call one service, and choose the status code and the response shape. Services hold the rules of each use case and never see `req`, `res` or a Mongoose query. Repositories hold every query and none of the rules. A change usually lands in one layer: a new response field in a presenter, a new rule in a service, a new query or index in a repository and its model.
+- **Services are tested without a server or a database.** Services reach MongoDB only through repositories, so the unit tests in `tests/unit/` replace the repositories with mocks and check each rule directly, in milliseconds. The API tests still drive the whole stack against a real MongoDB. The two cover different risks: the rules on one side, the wiring and the database guarantees on the other.
+- **Domain errors instead of status codes.** A service says what went wrong (`ConflictError`, `LockedError`), and one table in `middleware/error.js` says what that means in HTTP. The same services could sit behind a CLI or a queue consumer without changes.
+- **Plain modules, no container.** Each layer is an ES module of functions, and services import repositories directly. Node already keeps one shared instance of every module, and Vitest's `vi.mock` swaps a module out in tests, so constructor injection would add wiring code without giving the tests anything they lack.
+- **Models describe the data, presenters decide what leaves.** Each model file holds the schema, the indexes that enforce invariants (unique email, one vote per user, unique normalised candidate name) and the hooks that normalise names. `controllers/presenters.js` builds every response body from those documents, so password and vote-code hashes never leave the API: no controller sends a raw document.
+- **The database guards what must never break.** Checks in services give clear, early errors, but unique indexes are what keep one vote per voter and one candidate per name true under simultaneous requests. The API tests fire requests at the same moment to prove it.
+- **Validation at the edge.** zod schemas parse `req.body` and `req.query` in each controller and hand clean values to the service. Code below that point never re-checks shapes, and every validation failure has the same error format.
+- **Small helpers without state.** `auth/` holds password hashing, JWT signing and vote-code generation as plain functions, reused by services, seeding and tests alike.
 - **Configuration is read once.** `config.js` validates the environment at start and exports a plain object. Nothing else in `src` reads `process.env`, so a bad setting fails at boot rather than on the first request that needs it.
 - **Plain JavaScript, no build step.** The source is ES modules that Node runs directly (`node src/server.js`), and the Docker image copies `src` and starts it. What you read is what runs.
 
@@ -187,12 +201,18 @@ src/
   app.js            Express app (no listen), used by tests and the server
   server.js         connects to MongoDB, seeds, listens
   config.js         environment variables, validated with zod
+  errors.js         domain errors
+  schemas.js        zod schemas shared by several controllers
   seed.js           first-run data
-  auth/             password hashing, JWT helpers
+  auth/             password hashing, JWT helpers, vote codes
   middleware/       auth and role guards, lock guard, error handler
-  models/           user, candidate, vote, setting
   routes/           one file per resource, and index.js that mounts them
-tests/              one file per resource, plus shared helpers and setup
+  controllers/      one file per resource, and presenters.js for response bodies
+  services/         one file per resource: the rules
+  repositories/     users, candidates, votes, settings: the queries
+  models/           Mongoose schemas for user, candidate, vote, setting
+tests/              API tests, one file per resource, plus shared helpers and setup
+tests/unit/         service tests with mocked repositories
 ```
 
 ## Without Docker
@@ -203,4 +223,5 @@ With Node 22.12+ and a MongoDB you run yourself:
 npm install
 JWT_SECRET=dev SEED_DEMO=true npm run dev          # http://localhost:4000
 MONGO_URL=mongodb://localhost:27017/voting_test npm test
+npm run test:unit                                  # no MongoDB needed
 ```
