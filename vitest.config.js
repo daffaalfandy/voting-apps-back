@@ -3,7 +3,6 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    setupFiles: ['./tests/setup.js'],
     fileParallelism: false,
     env: {
       NODE_ENV: 'test',
@@ -15,5 +14,22 @@ export default defineConfig({
       include: ['src/**/*.js'],
       exclude: ['src/server.js'],
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          include: ['tests/unit/**/*.test.js'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'api',
+          include: ['tests/*.test.js'],
+          setupFiles: ['./tests/setup.js'],
+        },
+      },
+    ],
   },
 });
