@@ -25,8 +25,8 @@ describe('seedDatabase', () => {
     expect(await User.countDocuments({ role: 'voter' })).toBe(4);
     expect(await Candidate.countDocuments()).toBe(3);
     expect(await Vote.countDocuments()).toBe(2);
-    const [sarah] = DEMO_VOTERS;
-    const login = await request(app).post('/api/auth/login').send({ email: sarah.email, code: sarah.code });
+    const [siti] = DEMO_VOTERS;
+    const login = await request(app).post('/api/auth/login').send({ email: siti.email, code: siti.code });
     expect(login.status).toBe(200);
   });
 

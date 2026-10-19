@@ -6,17 +6,17 @@ import { User } from './models/user.js';
 import { Vote } from './models/vote.js';
 
 export const DEMO_VOTERS = [
-  { name: 'Sarah Jenkins', email: 'sarah@example.com', code: 'SRJN-4826' },
-  { name: 'David Kim', email: 'david@example.com', code: 'DVKM-7395' },
-  { name: 'Elena Rostova', email: 'elena@example.com', code: 'ERST-5942' },
-  { name: 'Amara Okafor', email: 'amara@example.com', code: 'AMRA-2683' },
+  { name: 'Siti Rahayu', email: 'siti@example.com', code: 'STRH-4826' },
+  { name: 'Dimas Pratama', email: 'dimas@example.com', code: 'DMPR-7395' },
+  { name: 'Eka Purnamasari', email: 'eka@example.com', code: 'EKPS-5942' },
+  { name: 'Ayu Wulandari', email: 'ayu@example.com', code: 'AYWD-2683' },
 ];
 
-const DEMO_CANDIDATES = ['Dr. Evelyn Reed', 'Marcus Chen', 'Sofia Rodriguez'];
+const DEMO_CANDIDATES = ['Dr. Endang Kusumawati', 'Made Wirawan', 'Sri Wahyuni'];
 
 const DEMO_VOTES = [
-  { voter: 'elena@example.com', candidate: 'Dr. Evelyn Reed' },
-  { voter: 'amara@example.com', candidate: 'Marcus Chen' },
+  { voter: 'eka@example.com', candidate: 'Dr. Endang Kusumawati' },
+  { voter: 'ayu@example.com', candidate: 'Made Wirawan' },
 ];
 
 export async function seedDatabase({ admin, demo }) {
