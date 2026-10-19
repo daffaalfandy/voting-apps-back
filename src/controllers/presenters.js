@@ -14,3 +14,7 @@ export function toPublicUser(user, votedAt) {
 export function toPublicCandidate(candidate) {
   return { id: candidate.id, name: candidate.name, isWriteIn: candidate.isWriteIn };
 }
+
+export function toPublicVote(vote) {
+  return { candidate: toPublicCandidate(vote.candidate), createdAt: vote.createdAt };
+}
