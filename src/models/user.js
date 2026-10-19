@@ -1,9 +1,7 @@
-import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose';
+import { Schema, model } from 'mongoose';
 
-export const USER_ROLES = ['admin', 'voter'] as const;
-export const USER_STATUSES = ['active', 'suspended'] as const;
-export type UserRole = (typeof USER_ROLES)[number];
-export type UserStatus = (typeof USER_STATUSES)[number];
+export const USER_ROLES = ['admin', 'voter'];
+export const USER_STATUSES = ['active', 'suspended'];
 
 const userSchema = new Schema(
   {
@@ -26,13 +24,11 @@ userSchema.pre('validate', function () {
   }
 });
 
-export type UserDoc = HydratedDocument<InferSchemaType<typeof userSchema>>;
-
 export const User = model('User', userSchema);
 
-export function toPublicUser(user: UserDoc, votedAt: Date | null) {
+export function toPublicUser(user, votedAt) {
   return {
-    id: user.id as string,
+    id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,

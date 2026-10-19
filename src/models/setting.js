@@ -9,16 +9,12 @@ const settingSchema = new Schema({
 
 export const Setting = model('Setting', settingSchema);
 
-export interface SystemSettings {
-  locked: boolean;
-}
-
-export async function getSettings(): Promise<SystemSettings> {
+export async function getSettings() {
   const doc = await Setting.findOne({ key: SYSTEM_KEY }).lean();
   return { locked: doc?.locked ?? false };
 }
 
-export async function updateSettings(changes: SystemSettings): Promise<SystemSettings> {
+export async function updateSettings(changes) {
   const doc = await Setting.findOneAndUpdate({ key: SYSTEM_KEY }, { $set: changes }, { upsert: true, returnDocument: 'after' }).lean();
-  return { locked: doc!.locked };
+  return { locked: doc.locked };
 }

@@ -1,8 +1,8 @@
-import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose';
+import { Schema, model } from 'mongoose';
 import { z } from 'zod';
 import { isDuplicateKeyError } from '../errors.js';
 
-export const normalizeName = (name: string) => name.normalize('NFKC').trim().replace(/\s+/g, ' ');
+export const normalizeName = (name) => name.normalize('NFKC').trim().replace(/\s+/g, ' ');
 
 export const candidateNameSchema = z
   .string({ error: 'Name is required' })
@@ -32,11 +32,9 @@ candidateSchema.pre('validate', function () {
   }
 });
 
-export type CandidateDoc = HydratedDocument<InferSchemaType<typeof candidateSchema>>;
-
 export const Candidate = model('Candidate', candidateSchema);
 
-export async function findOrCreateWriteIn(name: string): Promise<CandidateDoc> {
+export async function findOrCreateWriteIn(name) {
   const displayName = normalizeName(name);
   const normalizedName = displayName.toLowerCase();
   const upsert = () =>
@@ -56,6 +54,6 @@ export async function findOrCreateWriteIn(name: string): Promise<CandidateDoc> {
   }
 }
 
-export function toPublicCandidate(candidate: CandidateDoc) {
-  return { id: candidate.id as string, name: candidate.name, isWriteIn: candidate.isWriteIn };
+export function toPublicCandidate(candidate) {
+  return { id: candidate.id, name: candidate.name, isWriteIn: candidate.isWriteIn };
 }
