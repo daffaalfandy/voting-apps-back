@@ -5,6 +5,7 @@ import { errorHandler, notFound } from './middleware/error.js';
 import { authRouter } from './routes/auth.js';
 import { candidatesRouter } from './routes/candidates.js';
 import { electionRouter } from './routes/election.js';
+import { healthRouter } from './routes/health.js';
 import { participationRouter } from './routes/participation.js';
 import { resultsRouter } from './routes/results.js';
 import { settingsRouter } from './routes/settings.js';
@@ -17,9 +18,7 @@ export function createApp() {
   app.use(helmet());
   app.use(express.json({ limit: '10kb' }));
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok' });
-  });
+  app.use('/api/health', healthRouter);
   app.use('/api/auth', authRouter);
   app.use('/api/users', requireAuth, requireRole('admin'), usersRouter);
   app.use('/api/candidates', requireAuth, candidatesRouter);
