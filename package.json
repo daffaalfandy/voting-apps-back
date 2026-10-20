@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
+    "seed": "node src/scripts/seed.js",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:watch": "vitest",
